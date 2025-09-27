@@ -1,0 +1,86 @@
+
+model{
+  # Priors
+  alpha0 ~ dunif(-10,10)
+  alpha1 ~ dunif(-10,10)
+  alpha2 ~ dunif(-10,10)
+  alpha3 ~ dunif(-10,10)
+  alpha4 ~ dunif(-10,10)
+  alpha5 ~ dunif(-10,10)
+  beta0 ~ dunif(-10,10)
+  beta1 ~ dunif(-10,10) # field covariate
+  beta2 ~ dunif(-10,10) # Y10 covariate
+  beta3 ~ dunif(-10,10) # Y12 covariate
+  beta4 ~ dunif(-10,10) # Y13 covariate
+  beta5 ~ dunif(-10,10) # Y19 covariate
+  beta6 ~ dunif(-10,10) # Y24 covariate
+  beta7 ~ dunif(-10,10) # interaction covariate
+  beta8 ~ dunif(-10,10) # interaction covariate
+  beta9 ~ dunif(-10,10) # interaction covariate
+  beta10 ~ dunif(-10,10) # interaction covariate
+  beta11 ~ dunif(-10,10) # interaction covariate
+
+  for(i in 1:nind){
+    dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
+  }
+  for(s in 1:nsites){
+    # Construct cell probabilities for nD distance bands
+    for(g in 1:nD){                # midpt = mid-point of each band
+      log(p[s,g]) <- -midpt[g] * midpt[g] / (2 * sigma[s] * sigma[s])
+      pi[s,g] <- ((2 * midpt[g] ) / (B * B)) * delta # prob. per interval
+      f[s,g] <- p[s,g] * pi[s,g]
+      fc[s,g] <- f[s,g] / pcap[s]
+    }
+    pcap[s] <- sum(f[s,])           # Pr(capture): sum of rectangular areas
+
+    ncap[s] ~ dbin(pcap[s], N[s])   # Part 2 of HM
+    N[s] ~ dpois(lambda[s])         # Part 3 of HM
+    log(lambda[s]) <- beta0 + beta1 * field[s] + 
+        beta2 * Y10[s] + beta3 * Y12[s] +
+        beta4 * Y13[s] + beta5 * Y19[s] + 
+        beta6 * Y24[s] + 
+        beta7 * field[s] * Y10[s] +
+        beta8 * field[s] * Y12[s] +
+        beta9 * field[s] * Y13[s] +
+        beta10 * field[s] * Y19[s] +
+        beta11 * field[s] * Y24[s] # linear model abundance
+    log(sigma[s]) <- alpha0 + alpha1 * Y10[s] + alpha2 * Y12[s] +
+                      alpha3 * Y13[s] + alpha4 * Y19[s] +
+                        alpha5 * Y24[s] # linear model detection
+  }
+
+  # Derived parameters
+  lam.S.Y18 <- exp(beta0 + beta1)/4
+  lam.K.Y18 <- exp(beta0)/4
+  lam.S.Y10 <- exp(beta0 + beta1 + beta2 + beta7)/4
+  lam.K.Y10 <- exp(beta0 + beta2)/4
+  lam.S.Y12 <- exp(beta0 + beta1 + beta3 + beta8)/4
+  lam.K.Y12 <- exp(beta0 + beta3)/4
+  lam.S.Y13 <- exp(beta0 + beta1 + beta4 + beta9)/4
+  lam.K.Y13 <- exp(beta0 + beta4)/4
+  lam.S.Y19 <- exp(beta0 + beta1 + beta5 + beta10)/4
+  lam.K.Y19 <- exp(beta0 + beta5)/4
+  lam.S.Y24 <- exp(beta0 + beta1 + beta6 + beta11)/4
+  lam.K.Y24 <- exp(beta0 + beta6)/4
+  area.S <- 3.141*100*100/10000 # converted to ha [using 100 m as B was set to 103]
+  area.K <- 3.141*100*100/10000 # converted to ha [using 100 m as B was set to 103]
+  D.S.Y10 <- (lam.S.Y10)/area.S # mean per sampling period per ha
+  D.K.Y10 <- (lam.K.Y10)/area.K # mean per sampling period per ha  
+  D.S.Y12 <- (lam.S.Y12)/area.S # mean per sampling period per ha
+  D.K.Y12 <- (lam.K.Y12)/area.K # mean per sampling period per ha  
+  D.S.Y13 <- (lam.S.Y13)/area.S # mean per sampling period per ha
+  D.K.Y13 <- (lam.K.Y13)/area.K # mean per sampling period per ha  
+  D.S.Y18 <- (lam.S.Y18)/area.S # mean per sampling period per ha
+  D.K.Y18 <- (lam.K.Y18)/area.K # mean per sampling period per ha  
+  D.S.Y19 <- (lam.S.Y19)/area.S # mean per sampling period per ha
+  D.K.Y19 <- (lam.K.Y19)/area.K # mean per sampling period per ha  
+  D.S.Y24 <- (lam.S.Y24)/area.S # mean per sampling period per ha
+  D.K.Y24 <- (lam.K.Y24)/area.K # mean per sampling period per ha
+  sigma10 <- sigma[1]
+  sigma12 <- sigma[20]
+  sigma13 <- sigma[38]
+  sigma18 <- sigma[57]
+  sigma19 <- sigma[76]
+  sigma24 <- sigma[95]
+}
+
