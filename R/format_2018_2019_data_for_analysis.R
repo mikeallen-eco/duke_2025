@@ -46,12 +46,9 @@ pt18 = c("SR06", "SY04",
          "SY44", "SR46")
 )  
 
-# read in the 2018-2019
-u <- read.csv(path) %>%
-  rename(pt18 = pt) 
-
-# format data to match 2024-2025 (including timing and point locations)
-u.fin <- u %>%
+# format 2018-2019 data to match 2024-2025 (including timing and point locations)
+d <- read.csv(path) %>%
+  rename(pt18 = pt) %>%
   # associate the 2024-2025 point name (pt) with the corresponding 2018-2019 point name (pt18)
   left_join(survey.pt.lookup, by = join_by(pt18)) %>%
   # remove surveys at points and survey periods not corresponding with the 2024-2025 surveys
@@ -77,6 +74,20 @@ u.fin <- u %>%
   select(observer, year, date, time, pt, field, 
          period, obsperpt, perpt, species, num, dist)
 
-return(u.fin)
+# find points surveyed 2x within a period and keep only one
+surveys_to_keep <- d %>%
+  select(period, pt, observer, field, year, date, time) %>%
+  distinct() %>%
+  arrange(pt, year, period) %>%
+  mutate(perpt = paste0(period, pt),
+         obsperptdate = paste0(observer, period, pt, date)) %>%
+  mutate(dup = duplicated(perpt)*1) %>%
+  filter(dup %in% 0)
+
+d_final <- d %>%
+  mutate(obsperptdate = paste0(obsperpt, date)) %>%
+  filter(obsperptdate %in% surveys_to_keep$obsperptdate)
+
+return(d_final)
 
 }
