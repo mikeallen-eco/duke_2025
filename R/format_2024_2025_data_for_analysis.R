@@ -2,8 +2,8 @@
 # selects the subset of points that correspond spatially to the 2024-2025 points
 # and formats them for distance sampling
 
-library(dplyr)
-library(lubridate)
+library(dplyr, quietly = T, warn.conflicts = F)
+library(lubridate, quietly = T, warn.conflicts = F)
 
 format_2024_2025_data_for_analysis <- function(path = "data/Grassland_Birds_2024_data.csv"){
   

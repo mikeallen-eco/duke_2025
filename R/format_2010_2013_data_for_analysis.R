@@ -1,7 +1,7 @@
 # function to read in raw 2010-2013 Duke Farms grassland bird data and format for distance sampling
 
-library(dplyr)
-library(lubridate)
+library(dplyr, quietly = T, warn.conflicts = F)
+library(lubridate, quietly = T, warn.conflicts = F)
 
 format_2010_2013_data_for_analysis <- function(path = "data/Duke_grassland_birds_2010_2013.csv"){
 
