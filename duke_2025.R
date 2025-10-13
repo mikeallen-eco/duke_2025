@@ -26,12 +26,9 @@ model{
   alpha_Y24 ~ dunif(-5,5)
   alpha_Y25 ~ dunif(-5,5)
   
-  # Hard-code alpha_Y10_13 as the mean detection of the other years
-  alpha_Y10_13 <- (alpha_Y18 + alpha_Y19 + alpha_Y24 + alpha_Y25) / 4
-  
   # Abundance priors
   
-  # field covariate
+  # intercept & field covariate
   beta_int ~ dunif(-5,5)
   beta_field ~ dunif(-5,5)
   
@@ -81,9 +78,9 @@ model{
         beta_fieldY25 * field[s] * Y25[s]
     
     # Linear model for detection
-    Y10_13[s] <- step(Y10[s] + Y12[s] + Y13[s] - 0.1)  # 2010–2013 indicator
+    Y10_13[s] <- step(Y10[s] + Y12[s] + Y13[s] - 0.1) # 2010–2013 indicator (max of 0/1 variables)
     log(sigma[s]) <- alpha_int + 
-                     alpha_Y10_13 * Y10_13[s] + 
+                     0 * Y10_13[s] + # sets detection for years 2010-2013 to mean (intercept) value
                      alpha_Y18 * Y18[s] +
                      alpha_Y19 * Y19[s] +
                      alpha_Y24 * Y24[s] +
@@ -92,86 +89,123 @@ model{
   }
 
   # Derived parameters
-  lam.S.Y18 <- exp(beta0 + beta1)/4
-  lam.K.Y18 <- exp(beta0)/4
-  lam.S.Y10 <- exp(beta0 + beta1 + beta2 + beta7)/4
-  lam.K.Y10 <- exp(beta0 + beta2)/4
-  lam.S.Y12 <- exp(beta0 + beta1 + beta3 + beta8)/4
-  lam.K.Y12 <- exp(beta0 + beta3)/4
-  lam.S.Y13 <- exp(beta0 + beta1 + beta4 + beta9)/4
-  lam.K.Y13 <- exp(beta0 + beta4)/4
-  lam.S.Y19 <- exp(beta0 + beta1 + beta5 + beta10)/4
-  lam.K.Y19 <- exp(beta0 + beta5)/4
-  lam.S.Y24 <- exp(beta0 + beta1 + beta6 + beta11)/4
-  lam.K.Y24 <- exp(beta0 + beta6)/4
-  area.S <- 3.141*100*100/10000 # converted to ha [using 100 m as B was set to 103]
-  area.K <- 3.141*100*100/10000 # converted to ha [using 100 m as B was set to 103]
-  D.S.Y10 <- (lam.S.Y10)/area.S # mean per sampling period per ha
-  D.K.Y10 <- (lam.K.Y10)/area.K # mean per sampling period per ha  
-  D.S.Y12 <- (lam.S.Y12)/area.S # mean per sampling period per ha
-  D.K.Y12 <- (lam.K.Y12)/area.K # mean per sampling period per ha  
-  D.S.Y13 <- (lam.S.Y13)/area.S # mean per sampling period per ha
-  D.K.Y13 <- (lam.K.Y13)/area.K # mean per sampling period per ha  
-  D.S.Y18 <- (lam.S.Y18)/area.S # mean per sampling period per ha
-  D.K.Y18 <- (lam.K.Y18)/area.K # mean per sampling period per ha  
-  D.S.Y19 <- (lam.S.Y19)/area.S # mean per sampling period per ha
-  D.K.Y19 <- (lam.K.Y19)/area.K # mean per sampling period per ha  
-  D.S.Y24 <- (lam.S.Y24)/area.S # mean per sampling period per ha
-  D.K.Y24 <- (lam.K.Y24)/area.K # mean per sampling period per ha
-  sigma10 <- sigma[1]
-  sigma12 <- sigma[20]
-  sigma13 <- sigma[38]
-  sigma18 <- sigma[57]
-  sigma19 <- sigma[76]
-  sigma24 <- sigma[95]
-}
-",fill=TRUE, file="scripts/distance.N.field.6year.int.p.6year.txt")
+    # calculates the mean per-survey density of each point in each year
+    
+  # --- mean lambda (abundance) for Skeet Shoot (S: field=1) and Kaufman (K: field=0)
+  lam.S.Y10 <- exp(beta_int + beta_field + beta_Y10 + beta_fieldY10) / 4
+  lam.K.Y10 <- exp(beta_int            + beta_Y10           ) / 4
 
+  lam.S.Y12 <- exp(beta_int + beta_field + beta_Y12 + beta_fieldY12) / 4
+  lam.K.Y12 <- exp(beta_int            + beta_Y12           ) / 4
+
+  lam.S.Y13 <- exp(beta_int + beta_field + beta_Y13 + beta_fieldY13) / 4
+  lam.K.Y13 <- exp(beta_int            + beta_Y13           ) / 4
+
+  lam.S.Y18 <- exp(beta_int + beta_field                           ) / 4
+  lam.K.Y18 <- exp(beta_int                                 ) / 4
+
+  lam.S.Y19 <- exp(beta_int + beta_field + beta_Y19 + beta_fieldY19) / 4
+  lam.K.Y19 <- exp(beta_int            + beta_Y19           ) / 4
+
+  lam.S.Y24 <- exp(beta_int + beta_field + beta_Y24 + beta_fieldY24) / 4
+  lam.K.Y24 <- exp(beta_int            + beta_Y24           ) / 4
+
+  lam.S.Y25 <- exp(beta_int + beta_field + beta_Y25 + beta_fieldY25) / 4
+  lam.K.Y25 <- exp(beta_int            + beta_Y25           ) / 4
+
+  # Area of a circular transect with radius = B (meters) converted to hectares
+  # area (ha) = pi * B^2 (m^2) / 10,000
+  area.S <- 3.141592653589793 * B * B / 10000
+  area.K <- area.S   # using same truncation radius for both
+
+  # Densities (per ha) for each year and site type
+  D.S.Y10 <- lam.S.Y10 / area.S
+  D.K.Y10 <- lam.K.Y10 / area.K
+
+  D.S.Y12 <- lam.S.Y12 / area.S
+  D.K.Y12 <- lam.K.Y12 / area.K
+
+  D.S.Y13 <- lam.S.Y13 / area.S
+  D.K.Y13 <- lam.K.Y13 / area.K
+
+  D.S.Y18 <- lam.S.Y18 / area.S
+  D.K.Y18 <- lam.K.Y18 / area.K
+
+  D.S.Y19 <- lam.S.Y19 / area.S
+  D.K.Y19 <- lam.K.Y19 / area.K
+
+  D.S.Y24 <- lam.S.Y24 / area.S
+  D.K.Y24 <- lam.K.Y24 / area.K
+
+  D.S.Y25 <- lam.S.Y25 / area.S
+  D.K.Y25 <- lam.K.Y25 / area.K
+
+  # Representative sigma value for each year
+  # sigma10 <- sigma[1]
+  # sigma12 <- sigma[20]
+  # sigma13 <- sigma[38]
+  # sigma18 <- sigma[57]
+  # sigma19 <- sigma[76]
+  # sigma24 <- sigma[95]
+
+}
+",fill=TRUE, file="JAGS/distance_JAGS_model_2025.txt")
 
 # Inits
 Nst <- ncap + 1
-inits.fun <- function(){list(alpha0=3.8, alpha1=0, alpha2=0,
-                             beta0=1.8, beta1=0.5, beta2 = 1, beta3 = .8, 
-                             beta4 = 0, beta5 = -1, beta6 = 0,
-                             beta7 = -.6, beta8 = 0, beta9 = 0.5,
-                             beta10 = 0, beta11 = 0, N=Nst)}
+inits.fun <- function()list(alpha_int=1,
+                            alpha_Y18=0,
+                            alpha_Y19=0,
+                            alpha_Y24=0,
+                            alpha_Y25=0,
+                            beta_int=0,
+                            beta_field=0,
+                            beta_Y10=0,
+                            beta_Y12=0,
+                            beta_Y13=0,
+                            beta_Y19=0,
+                            beta_Y24=0,
+                            beta_Y25=0,
+                            beta_fieldY10=0, 
+                            beta_fieldY12=0,
+                            beta_fieldY13=0,
+                            beta_fieldY19=0,
+                            beta_fieldY24=0,
+                            beta_fieldY25=0,
+                            N=b$ncap+1)
 
 # Params to save
-params <- c("alpha0", "alpha1", "alpha2",
-            "alpha3", "alpha4", "alpha5",
-            "beta0", "beta1",
-            "beta2", "beta3", 
-            "beta4", "beta5",
-            "beta6", "beta7",
-            "beta8", "beta9",
-            "beta10", "beta11",
+params <- c("alpha_int", "alpha_Y18", "alpha_Y19", "alpha_Y24", "alpha_Y25",
+            "beta_int", "beta_field", "beta_Y10", "beta_Y12", "beta_Y13", "beta_Y19", "beta_Y24",
+            "beta_Y25", "beta_fieldY10",  "beta_fieldY12", "beta_fieldY13", "beta_fieldY19",
+            "beta_fieldY24", "beta_fieldY25",
             "D.S.Y10", "D.K.Y10", 
             "D.S.Y12", "D.K.Y12", 
             "D.S.Y13", "D.K.Y13",            
             "D.S.Y18", "D.K.Y18", 
             "D.S.Y19", "D.K.Y19", 
             "D.S.Y24", "D.K.Y24",
+            "D.S.Y25", "D.K.Y25",
             "lam.S.Y10", "lam.K.Y10",
             "lam.S.Y12", "lam.K.Y12",
             "lam.S.Y13", "lam.K.Y13",
             "lam.S.Y18", "lam.K.Y18",
             "lam.S.Y19", "lam.K.Y19",
             "lam.S.Y24", "lam.K.Y24",
-            "sigma10", "sigma12", "sigma13",
-            "sigma18", "sigma19", "sigma24") 
+            "sigma")
 
 # MCMC settings
 ni <- 90000   ;   nb <- 0   ; na <- 30000;   nt <- 30   ;   nc <- 3
 
-# Run BUGS (~ 2.3 min) and summarize posteriors
-out <- jagsUI::jags(data = b.jags.data, 
+# Run JAGS and summarize posteriors
+out <- jagsUI::jags(data = b, 
                     inits = inits.fun, 
                     parameters.to.save = params, 
-                    model.file = "scripts/distance.N.field.6year.int.p.6year.txt",
+                    model.file = "JAGS/distance_JAGS_model_2025.txt",
                     n.thin=nt, n.chains=nc, n.burnin=nb, n.iter=ni,
                     n.adapt = na,
                     n.cores = 3)
-# sink("output/b.6years.model.int.p.year.txt")
+# sink("output/bobolink_2025.txt")
 print(out, 2)
 # sink()
 # jagsUI:: traceplot(out)

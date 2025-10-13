@@ -1,0 +1,133 @@
+
+model{
+  # Detection priors
+  alpha_int ~ dunif(-10,10)
+  alpha_Y18 ~ dunif(-5,5)
+  alpha_Y19 ~ dunif(-5,5)
+  alpha_Y24 ~ dunif(-5,5)
+  alpha_Y25 ~ dunif(-5,5)
+  
+  # Abundance priors
+  
+  # intercept & field covariate
+  beta_int ~ dunif(-5,5)
+  beta_field ~ dunif(-5,5)
+  
+  # year covariates
+  beta_Y10 ~ dunif(-5,5)
+  beta_Y12 ~ dunif(-5,5)
+  beta_Y13 ~ dunif(-5,5)
+  beta_Y19 ~ dunif(-5,5)
+  beta_Y24 ~ dunif(-5,5)
+  beta_Y25 ~ dunif(-5,5)
+  
+  # interaction covariates
+  beta_fieldY10 ~ dunif(-5,5) 
+  beta_fieldY12 ~ dunif(-5,5)
+  beta_fieldY13 ~ dunif(-5,5)
+  beta_fieldY19 ~ dunif(-5,5)
+  beta_fieldY24 ~ dunif(-5,5)
+  beta_fieldY25 ~ dunif(-5,5)
+
+  for(i in 1:nind){
+    dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
+  }
+  for(s in 1:nsites){
+    # Construct cell probabilities for nD distance bands
+    for(g in 1:nD){                # midpt = mid-point of each band
+      log(p[s,g]) <- -midpt[g] * midpt[g] / (2 * sigma[s] * sigma[s])
+      pi[s,g] <- ((2 * midpt[g] ) / (B * B)) * delta # prob. per interval
+      f[s,g] <- p[s,g] * pi[s,g]
+      fc[s,g] <- f[s,g] / pcap[s]
+    }
+    pcap[s] <- sum(f[s,])           # Pr(capture): sum of rectangular areas
+
+    ncap[s] ~ dbin(pcap[s], N[s])   # Part 2 of HM
+    N[s] ~ dpois(lambda[s])         # Part 3 of HM
+    
+     # linear model abundance
+    log(lambda[s]) <- beta_int + beta_field * field[s] + 
+        beta_Y10 * Y10[s] + beta_Y12 * Y12[s] +
+        beta_Y13 * Y13[s] + beta_Y19 * Y19[s] + 
+        beta_Y24 * Y24[s] + 
+        beta_Y25 * Y25[s] +
+        beta_fieldY10 * field[s] * Y10[s] +
+        beta_fieldY12 * field[s] * Y12[s] +
+        beta_fieldY13 * field[s] * Y13[s] +
+        beta_fieldY19 * field[s] * Y19[s] +
+        beta_fieldY24 * field[s] * Y24[s] +
+        beta_fieldY25 * field[s] * Y25[s]
+    
+    # Linear model for detection
+    Y10_13[s] <- step(Y10[s] + Y12[s] + Y13[s] - 0.1) # 2010–2013 indicator (max of 0/1 variables)
+    log(sigma[s]) <- alpha_int + 
+                     0 * Y10_13[s] + # sets detection for years 2010-2013 to mean (intercept) value
+                     alpha_Y18 * Y18[s] +
+                     alpha_Y19 * Y19[s] +
+                     alpha_Y24 * Y24[s] +
+                     alpha_Y25 * Y25[s]
+
+  }
+
+  # Derived parameters
+    # calculates the mean per-survey density of each point in each year
+    
+  # --- mean lambda (abundance) for Skeet Shoot (S: field=1) and Kaufman (K: field=0)
+  lam.S.Y10 <- exp(beta_int + beta_field + beta_Y10 + beta_fieldY10) / 4
+  lam.K.Y10 <- exp(beta_int            + beta_Y10           ) / 4
+
+  lam.S.Y12 <- exp(beta_int + beta_field + beta_Y12 + beta_fieldY12) / 4
+  lam.K.Y12 <- exp(beta_int            + beta_Y12           ) / 4
+
+  lam.S.Y13 <- exp(beta_int + beta_field + beta_Y13 + beta_fieldY13) / 4
+  lam.K.Y13 <- exp(beta_int            + beta_Y13           ) / 4
+
+  lam.S.Y18 <- exp(beta_int + beta_field                           ) / 4
+  lam.K.Y18 <- exp(beta_int                                 ) / 4
+
+  lam.S.Y19 <- exp(beta_int + beta_field + beta_Y19 + beta_fieldY19) / 4
+  lam.K.Y19 <- exp(beta_int            + beta_Y19           ) / 4
+
+  lam.S.Y24 <- exp(beta_int + beta_field + beta_Y24 + beta_fieldY24) / 4
+  lam.K.Y24 <- exp(beta_int            + beta_Y24           ) / 4
+
+  lam.S.Y25 <- exp(beta_int + beta_field + beta_Y25 + beta_fieldY25) / 4
+  lam.K.Y25 <- exp(beta_int            + beta_Y25           ) / 4
+
+  # Area of a circular transect with radius = B (meters) converted to hectares
+  # area (ha) = pi * B^2 (m^2) / 10,000
+  area.S <- 3.141592653589793 * B * B / 10000
+  area.K <- area.S   # using same truncation radius for both
+
+  # Densities (per ha) for each year and site type
+  D.S.Y10 <- lam.S.Y10 / area.S
+  D.K.Y10 <- lam.K.Y10 / area.K
+
+  D.S.Y12 <- lam.S.Y12 / area.S
+  D.K.Y12 <- lam.K.Y12 / area.K
+
+  D.S.Y13 <- lam.S.Y13 / area.S
+  D.K.Y13 <- lam.K.Y13 / area.K
+
+  D.S.Y18 <- lam.S.Y18 / area.S
+  D.K.Y18 <- lam.K.Y18 / area.K
+
+  D.S.Y19 <- lam.S.Y19 / area.S
+  D.K.Y19 <- lam.K.Y19 / area.K
+
+  D.S.Y24 <- lam.S.Y24 / area.S
+  D.K.Y24 <- lam.K.Y24 / area.K
+
+  D.S.Y25 <- lam.S.Y25 / area.S
+  D.K.Y25 <- lam.K.Y25 / area.K
+
+  # Representative sigma value for each year
+  # sigma10 <- sigma[1]
+  # sigma12 <- sigma[20]
+  # sigma13 <- sigma[38]
+  # sigma18 <- sigma[57]
+  # sigma19 <- sigma[76]
+  # sigma24 <- sigma[95]
+
+}
+

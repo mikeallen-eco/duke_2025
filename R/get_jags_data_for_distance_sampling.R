@@ -43,9 +43,10 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
     distinct() %>%
     mutate(
       fld = as.numeric(as.factor(field)) - 1,
-      # Y10 = as.numeric(ifelse(year %in% "Y10", 1, 0)),
-      # Y12 = as.numeric(ifelse(year %in% "Y12", 1, 0)),
-      # Y13 = as.numeric(ifelse(year %in% "Y13", 1, 0)),
+      Y10 = as.numeric(ifelse(year %in% "Y10", 1, 0)),
+      Y12 = as.numeric(ifelse(year %in% "Y12", 1, 0)),
+      Y13 = as.numeric(ifelse(year %in% "Y13", 1, 0)),
+      Y18 = as.numeric(ifelse(year %in% "Y18", 1, 0)),
       Y19 = as.numeric(ifelse(year %in% "Y19", 1, 0)),
       Y24 = as.numeric(ifelse(year %in% "Y24", 1, 0)),
       Y25 = as.numeric(ifelse(year %in% "Y25", 1, 0))
@@ -71,7 +72,8 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
   # Bundle and summarize data set
   jags.data <- list(nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,
                     delta=delta, ncap=ncap, field=site.covs$fld, 
-                    # Y10 = site.covs$Y10, Y12 = site.covs$Y12, Y13 = site.covs$Y13, 
+                    Y10 = site.covs$Y10, Y12 = site.covs$Y12, Y13 = site.covs$Y13,
+                    Y18 = site.covs$Y18,
                     Y19 = site.covs$Y19, Y24 = site.covs$Y24, Y25 = site.covs$Y25,
                     dclass=dclass, site=site)
   
