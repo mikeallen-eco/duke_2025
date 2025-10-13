@@ -9,35 +9,47 @@ d10_13 <- format_2010_2013_data_for_analysis("data/Grassland_Birds_2010-2013_dat
 d18_19 <- format_2018_2019_data_for_analysis("data/Grassland_Birds_2018-2019_data.csv")
 d24 <- format_2024_2025_data_for_analysis("data/Grassland_Birds_2024_data.csv")
 d25 <- format_2024_2025_data_for_analysis("data/20250520_grassland_birds_2025_Allen/Grassland_Birds_2025_data.csv")
-d <- bind_rows(d18_19,d24,d25)
+d <- bind_rows(d10_13, d18_19,d24,d25)
 
 # format JAGS data list for each species
 b <- get_jags_data_for_distance_sampling(spname = "BOBO", dist_threshold = 100)
 
 ### --- Step 2. Edit & save JAGS model
 
-# BUGS model specification for point transect data
+# JAGS model specification for point transect data
 cat("
 model{
-  # Priors
-  alpha.int ~ dunif(-10,10)
-  alpha ~ dunif(-5,5)
-  alpha2 ~ dunif(-5,5)
-  alpha3 ~ dunif(-5,5)
-  alpha4 ~ dunif(-5,5)
-  alpha5 ~ dunif(-5,5)
-  beta0 ~ dunif(-5,5)
-  beta1 ~ dunif(-5,5) # field covariate
-  beta2 ~ dunif(-5,5) # Y10 covariate
-  beta3 ~ dunif(-5,5) # Y12 covariate
-  beta4 ~ dunif(-5,5) # Y13 covariate
-  beta5 ~ dunif(-5,5) # Y19 covariate
-  beta6 ~ dunif(-5,5) # Y24 covariate
-  beta7 ~ dunif(-5,5) # interaction covariate
-  beta8 ~ dunif(-5,5) # interaction covariate
-  beta9 ~ dunif(-5,5) # interaction covariate
-  beta10 ~ dunif(-5,5) # interaction covariate
-  beta11 ~ dunif(-5,5) # interaction covariate
+  # Detection priors
+  alpha_int ~ dunif(-10,10)
+  alpha_Y18 ~ dunif(-5,5)
+  alpha_Y19 ~ dunif(-5,5)
+  alpha_Y24 ~ dunif(-5,5)
+  alpha_Y25 ~ dunif(-5,5)
+  
+  # Hard-code alpha_Y10_13 as the mean detection of the other years
+  alpha_Y10_13 <- (alpha_Y18 + alpha_Y19 + alpha_Y24 + alpha_Y25) / 4
+  
+  # Abundance priors
+  
+  # field covariate
+  beta_int ~ dunif(-5,5)
+  beta_field ~ dunif(-5,5)
+  
+  # year covariates
+  beta_Y10 ~ dunif(-5,5)
+  beta_Y12 ~ dunif(-5,5)
+  beta_Y13 ~ dunif(-5,5)
+  beta_Y19 ~ dunif(-5,5)
+  beta_Y24 ~ dunif(-5,5)
+  beta_Y25 ~ dunif(-5,5)
+  
+  # interaction covariates
+  beta_fieldY10 ~ dunif(-5,5) 
+  beta_fieldY12 ~ dunif(-5,5)
+  beta_fieldY13 ~ dunif(-5,5)
+  beta_fieldY19 ~ dunif(-5,5)
+  beta_fieldY24 ~ dunif(-5,5)
+  beta_fieldY25 ~ dunif(-5,5)
 
   for(i in 1:nind){
     dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
@@ -54,18 +66,29 @@ model{
 
     ncap[s] ~ dbin(pcap[s], N[s])   # Part 2 of HM
     N[s] ~ dpois(lambda[s])         # Part 3 of HM
-    log(lambda[s]) <- beta0 + beta1 * field[s] + 
-        beta2 * Y10[s] + beta3 * Y12[s] +
-        beta4 * Y13[s] + beta5 * Y19[s] + 
-        beta6 * Y24[s] + 
-        beta7 * field[s] * Y10[s] +
-        beta8 * field[s] * Y12[s] +
-        beta9 * field[s] * Y13[s] +
-        beta10 * field[s] * Y19[s] +
-        beta11 * field[s] * Y24[s] # linear model abundance
-    log(sigma[s]) <- alpha0 + alpha1 * Y10[s] + alpha2 * Y12[s] + alpha3 * Y13[s] + 
-                        alpha4 * Y19[s] +
-                        alpha5 * Y24[s] # linear model detection
+    
+     # linear model abundance
+    log(lambda[s]) <- beta_int + beta_field * field[s] + 
+        beta_Y10 * Y10[s] + beta_Y12 * Y12[s] +
+        beta_Y13 * Y13[s] + beta_Y19 * Y19[s] + 
+        beta_Y24 * Y24[s] + 
+        beta_Y25 * Y25[s] +
+        beta_fieldY10 * field[s] * Y10[s] +
+        beta_fieldY12 * field[s] * Y12[s] +
+        beta_fieldY13 * field[s] * Y13[s] +
+        beta_fieldY19 * field[s] * Y19[s] +
+        beta_fieldY24 * field[s] * Y24[s] +
+        beta_fieldY25 * field[s] * Y25[s]
+    
+    # Linear model for detection
+    Y10_13[s] <- step(Y10[s] + Y12[s] + Y13[s] - 0.1)  # 2010–2013 indicator
+    log(sigma[s]) <- alpha_int + 
+                     alpha_Y10_13 * Y10_13[s] + 
+                     alpha_Y18 * Y18[s] +
+                     alpha_Y19 * Y19[s] +
+                     alpha_Y24 * Y24[s] +
+                     alpha_Y25 * Y25[s]
+
   }
 
   # Derived parameters

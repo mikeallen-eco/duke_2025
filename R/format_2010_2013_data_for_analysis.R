@@ -42,7 +42,8 @@ data <- read.csv(path) %>%
   mutate(pt = paste0(year, PointId)) %>%
   mutate(obsperpt = paste0(observer, period, pt),
          perpt = paste0(period, pt)) %>%
-  select(observer, year, date = VisitDate, time, pt, field, period, 
+  mutate(date = ymd(VisitDate)) %>%
+  select(observer, year, date, time, pt, field, period, 
          obsperpt, perpt, species = sp, num = n, distcat = dist)
 
 return(data)
