@@ -52,6 +52,21 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
       Y25 = as.numeric(ifelse(year %in% "Y25", 1, 0))
     )
   
+  # numeric year index
+  year_levels <- sort(unique(site.covs$year))
+  site.covs <- site.covs %>%
+    mutate(year_index = match(year, year_levels))
+  
+  # number of years
+  nyears <- length(year_levels)
+  
+  # flag for years with at least one detection
+  has_det <- site.covs %>%
+    group_by(year_index) %>%
+    summarize(has_det = as.integer(any(ptn %in% unique(sp_data_expanded$ptn[!is.na(sp_data_expanded$dist)])))) %>%
+    arrange(year_index) %>%
+    pull(has_det)
+  
   # Prepare final data for JAGS
   ncap <- table(sp_data_expanded$ptn)            # ncap = 1 if no individuals captured
   sites0 <- sp_data_expanded[is.na(sp_data_expanded[, "dist.na"]), ]$ptn # sites where nothing was seen
@@ -73,9 +88,11 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
   jags.data <- list(nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,
                     delta=delta, ncap=ncap, field=site.covs$fld, 
                     Y10 = site.covs$Y10, Y12 = site.covs$Y12, Y13 = site.covs$Y13,
-                    Y18 = site.covs$Y18,
                     Y19 = site.covs$Y19, Y24 = site.covs$Y24, Y25 = site.covs$Y25,
-                    dclass=dclass, site=site)
+                    dclass=dclass, site=site,
+                    year = site.covs$year_index,
+                    nyears = nyears,
+                    has_det = has_det)
   
   return(jags.data)
   
