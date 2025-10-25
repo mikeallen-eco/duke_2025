@@ -10,9 +10,32 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
     distinct() %>%
     arrange(pt, year)
   
-  # extract all observations of the species
-  sp_data <- df %>%
+  # extract all observations of the species (years 2018+ when distance data is available)
+  sp_data_later_years <- df %>%
+    filter(!year %in% c("Y10", "Y12", "Y13")) %>%
     filter(species %in% spname, dist < (dist_threshold + 1))
+
+  # extract all observations of the species (years 2010-2013 when distance data not available)
+  sp_data_early_years <- df %>%
+    filter(year %in% c("Y10", "Y12", "Y13")) %>%
+    filter(species %in% spname)
+    # filter(species %in% spname, dist < (dist_threshold + 1))
+  
+  # impute distances for 2010-2013 (same bin probabilities as 2018+)
+  bins <- cut(sp_data_later_years$dist, breaks = seq(0, 100, by = 5), include.lowest = TRUE, right = FALSE)
+  bin_probs <- prop.table(table(bins)) # Compute bin probabilities
+  n_missing <- length(sp_data_early_years$dist)
+  set.seed(102) # Sample according to observed proportions
+  sampled_bins <- sample(names(bin_probs), size = n_missing, replace = TRUE, prob = bin_probs)
+  bin_edges <- as.data.frame(do.call(rbind, strsplit(gsub("\\[|\\)|\\]", "", sampled_bins), ",")))
+  colnames(bin_edges) <- c("lower", "upper")
+  bin_edges <- bin_edges |> dplyr::mutate(lower = as.numeric(lower), upper = as.numeric(upper))
+  sp_data_early_years$dist <- runif(n_missing, min = bin_edges$lower, max = bin_edges$upper)
+
+  # recombine 2010-2013 data to 2018+ data
+  sp_data <- sp_data_early_years %>%
+    bind_rows(sp_data_later_years) %>%
+    select(-distcat)
   
   # get names of surveys that had zero observations of the species
   zero_surveys <- setdiff(unique(survey_info$pt), unique(sp_data$pt))
@@ -52,21 +75,6 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
       Y25 = as.numeric(ifelse(year %in% "Y25", 1, 0))
     )
   
-  # numeric year index
-  year_levels <- sort(unique(site.covs$year))
-  site.covs <- site.covs %>%
-    mutate(year_index = match(year, year_levels))
-  
-  # number of years
-  nyears <- length(year_levels)
-  
-  # flag for years with at least one detection
-  has_det <- site.covs %>%
-    group_by(year_index) %>%
-    summarize(has_det = as.integer(any(ptn %in% unique(sp_data_expanded$ptn[!is.na(sp_data_expanded$dist)])))) %>%
-    arrange(year_index) %>%
-    pull(has_det)
-  
   # Prepare final data for JAGS
   ncap <- table(sp_data_expanded$ptn)            # ncap = 1 if no individuals captured
   sites0 <- sp_data_expanded[is.na(sp_data_expanded[, "dist.na"]), ]$ptn # sites where nothing was seen
@@ -89,10 +97,7 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
                     delta=delta, ncap=ncap, field=site.covs$fld, 
                     Y10 = site.covs$Y10, Y12 = site.covs$Y12, Y13 = site.covs$Y13,
                     Y19 = site.covs$Y19, Y24 = site.covs$Y24, Y25 = site.covs$Y25,
-                    dclass=dclass, site=site,
-                    year = site.covs$year_index,
-                    nyears = nyears,
-                    has_det = has_det)
+                    dclass=dclass, site=site)
   
   return(jags.data)
   

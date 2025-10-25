@@ -9,164 +9,133 @@ d10_13 <- format_2010_2013_data_for_analysis("data/Grassland_Birds_2010-2013_dat
 d18_19 <- format_2018_2019_data_for_analysis("data/Grassland_Birds_2018-2019_data.csv")
 d24 <- format_2024_2025_data_for_analysis("data/Grassland_Birds_2024_data.csv")
 d25 <- format_2024_2025_data_for_analysis("data/20250520_grassland_birds_2025_Allen/Grassland_Birds_2025_data.csv")
-d <- bind_rows(d10_13, d18_19,d24,d25)
+d <- bind_rows(d10_13, d18_19, d24, d25)
 
 # format JAGS data list for each species
 b <- get_jags_data_for_distance_sampling(spname = "BOBO", dist_threshold = 100)
+g <- get_jags_data_for_distance_sampling(spname = "GRSP", dist_threshold = 100)
+e <- get_jags_data_for_distance_sampling(spname = "EAME", dist_threshold = 100)
 
 ### --- Step 2. Edit & save JAGS model
 
 # JAGS model specification for point transect data
 cat("
-model {
-
-  #### ------------------------
-  #### Abundance model
-  #### ------------------------
-
+model{
   # Priors
-  beta_int       ~ dnorm(0, 0.04)      # sd ≈ 5
-  beta_field     ~ dnorm(0, 0.25)      # sd = 2
-  
-  # Year effects
-  beta_Y10       ~ dnorm(0, 0.25)
-  beta_Y12       ~ dnorm(0, 0.25)
-  beta_Y13       ~ dnorm(0, 0.25)
-  beta_Y19       ~ dnorm(0, 0.25)
-  beta_Y24       ~ dnorm(0, 0.25)
-  beta_Y25       ~ dnorm(0, 0.25)
-  
-  # Field × Year interactions
-  beta_fieldY10  ~ dnorm(0, 0.25)
-  beta_fieldY12  ~ dnorm(0, 0.25)
-  beta_fieldY13  ~ dnorm(0, 0.25)
-  beta_fieldY19  ~ dnorm(0, 0.25)
-  beta_fieldY24  ~ dnorm(0, 0.25)
-  beta_fieldY25  ~ dnorm(0, 0.25)
+  alpha_Int ~ dunif(-5,5)
+  alpha_Y10 ~ dunif(-5,5)
+  alpha_Y12 ~ dunif(-5,5)
+  alpha_Y13 ~ dunif(-5,5)
+  alpha_Y19 ~ dunif(-5,5)
+  alpha_Y24 ~ dunif(-5,5)
+  alpha_Y25 ~ dunif(-5,5)
+  beta_Int ~ dunif(-5,5)
+  beta_fieldS ~ dunif(-5,5) # field covariate
+  beta_Y10 ~ dunif(-5,5) # Y10 covariate
+  beta_Y12 ~ dunif(-5,5) # Y12 covariate
+  beta_Y13 ~ dunif(-5,5) # Y13 covariate
+  beta_Y19 ~ dunif(-5,5) # Y19 covariate
+  beta_Y24 ~ dunif(-5,5) # Y24 covariate
+  beta_Y25 ~ dunif(-5,5) # Y25 covariate
+  beta_fld10 ~ dunif(-5,5) # interaction covariate
+  beta_fld12 ~ dunif(-5,5) # interaction covariate
+  beta_fld13 ~ dunif(-5,5) # interaction covariate
+  beta_fld19 ~ dunif(-5,5) # interaction covariate
+  beta_fld24 ~ dunif(-5,5) # interaction covariate
+  beta_fld25 ~ dunif(-5,5) # interaction covariate
 
-  #### ------------------------
-  #### Detection model
-  #### ------------------------
-
-  # Hyperpriors for yearly detection variance
-  mu_alpha    ~ dnorm(3.5, 0.25)       # mean log(sigma) ≈ 3.5 (≈33 m)
-  sigma_alpha ~ dunif(0, 3)
-  tau_alpha   <- 1 / (sigma_alpha * sigma_alpha)
-
-  # Year-level random effects
-  for (y in 1:nyears) {
-  alpha_year[y] ~ dnorm(mu_alpha, tau_alpha)
-  alpha_year_used[y] <- ifelse(has_det[y] == 1, alpha_year[y], mu_alpha)
+  for(i in 1:nind){
+    dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
   }
-
-
-  #### ------------------------
-  #### Observation model (marginalized)
-  #### ------------------------
-
-  for (i in 1:nind) {
-    dclass[i] ~ dcat(fc[site[i],])    # Part 1 of HM
-  }
-
-  for (s in 1:nsites) {
-
-    # Year-specific sigma
-    log(sigma[s]) <- mu_alpha + alpha_year_used[ year[s] ]
-
-    # Construct distance band detection probabilities
-    for (g in 1:nD) {
+  for(s in 1:nsites){
+    # Construct cell probabilities for nD distance bands
+    for(g in 1:nD){                # midpt = mid-point of each band
       log(p[s,g]) <- -midpt[g] * midpt[g] / (2 * sigma[s] * sigma[s])
-      pi[s,g]     <- (2 * midpt[g] / (B * B)) * delta   # interval probability
-      f[s,g]      <- p[s,g] * pi[s,g]
-    }
-
-    # Probability of capture (integrated across distance bands)
-    pcap[s] <- sum(f[s,])
-
-    # Normalize detection probabilities per band
-    for (g in 1:nD) {
+      pi[s,g] <- ((2 * midpt[g] ) / (B * B)) * delta # prob. per interval
+      f[s,g] <- p[s,g] * pi[s,g]
       fc[s,g] <- f[s,g] / pcap[s]
     }
+    pcap[s] <- sum(f[s,])           # Pr(capture): sum of rectangular areas
 
-    # Marginalized likelihood (fast mixing)
-    ncap[s] ~ dpois(lambda[s] * pcap[s])
-
-    # Abundance linear predictor
-    log(lambda[s]) <-
-        beta_int + beta_field * field[s] +
-        beta_Y10 * Y10[s] + beta_Y12 * Y12[s] + beta_Y13 * Y13[s] +
-        beta_Y19 * Y19[s] + beta_Y24 * Y24[s] + beta_Y25 * Y25[s] +
-        beta_fieldY10 * field[s] * Y10[s] +
-        beta_fieldY12 * field[s] * Y12[s] +
-        beta_fieldY13 * field[s] * Y13[s] +
-        beta_fieldY19 * field[s] * Y19[s] +
-        beta_fieldY24 * field[s] * Y24[s] +
-        beta_fieldY25 * field[s] * Y25[s]
+    ncap[s] ~ dbin(pcap[s], N[s])   # Part 2 of HM
+    N[s] ~ dpois(lambda[s])         # Part 3 of HM
+    
+    # linear model of abundance
+    log(lambda[s]) <- beta_Int + beta_fieldS * field[s] + 
+        beta_Y10 * Y10[s] + beta_Y12 * Y12[s] +
+        beta_Y13 * Y13[s] + beta_Y19 * Y19[s] + 
+        beta_Y24 * Y24[s] + beta_Y25 * Y25[s] +
+        beta_fld10 * field[s] * Y10[s] +
+        beta_fld12 * field[s] * Y12[s] +
+        beta_fld13 * field[s] * Y13[s] +
+        beta_fld19 * field[s] * Y19[s] +
+        beta_fld24 * field[s] * Y24[s] +
+        beta_fld25 * field[s] * Y25[s]
+    
+    # linear model of detection
+    log(sigma[s]) <- alpha_Int + alpha_Y10 * Y10[s] + alpha_Y12 * Y12[s] +
+                      alpha_Y13 * Y13[s] + alpha_Y19 * Y19[s] +
+                        alpha_Y24 * Y24[s] + alpha_Y25 * Y25[s]
   }
 
-  #### ------------------------
-  #### Derived parameters
-  #### ------------------------
-
-  # Mean per-survey abundance per site type × year (divided by 4 visits)
-  lam.S.Y10 <- exp(beta_int + beta_field + beta_Y10 + beta_fieldY10) / 4
-  lam.K.Y10 <- exp(beta_int            + beta_Y10) / 4
-
-  lam.S.Y12 <- exp(beta_int + beta_field + beta_Y12 + beta_fieldY12) / 4
-  lam.K.Y12 <- exp(beta_int            + beta_Y12) / 4
-
-  lam.S.Y13 <- exp(beta_int + beta_field + beta_Y13 + beta_fieldY13) / 4
-  lam.K.Y13 <- exp(beta_int            + beta_Y13) / 4
-
-  lam.S.Y18 <- exp(beta_int + beta_field) / 4
-  lam.K.Y18 <- exp(beta_int) / 4
-
-  lam.S.Y19 <- exp(beta_int + beta_field + beta_Y19 + beta_fieldY19) / 4
-  lam.K.Y19 <- exp(beta_int            + beta_Y19) / 4
-
-  lam.S.Y24 <- exp(beta_int + beta_field + beta_Y24 + beta_fieldY24) / 4
-  lam.K.Y24 <- exp(beta_int            + beta_Y24) / 4
-
-  lam.S.Y25 <- exp(beta_int + beta_field + beta_Y25 + beta_fieldY25) / 4
-  lam.K.Y25 <- exp(beta_int            + beta_Y25) / 4
-
-  # Area of circular transect (ha)
-  area <- 3.141592653589793 * B * B / 10000
-
-  # Density (individuals per ha)
-  D.S.Y10 <- lam.S.Y10 / area
-  D.K.Y10 <- lam.K.Y10 / area
-
-  D.S.Y12 <- lam.S.Y12 / area
-  D.K.Y12 <- lam.K.Y12 / area
-
-  D.S.Y13 <- lam.S.Y13 / area
-  D.K.Y13 <- lam.K.Y13 / area
-
-  D.S.Y18 <- lam.S.Y18 / area
-  D.K.Y18 <- lam.K.Y18 / area
-
-  D.S.Y19 <- lam.S.Y19 / area
-  D.K.Y19 <- lam.K.Y19 / area
-
-  D.S.Y24 <- lam.S.Y24 / area
-  D.K.Y24 <- lam.K.Y24 / area
-
-  D.S.Y25 <- lam.S.Y25 / area
-  D.K.Y25 <- lam.K.Y25 / area
+  # Derived parameters
+  
+  # lambda: mean count per sample
+  lam.S.Y10 <- exp(beta_Int + beta_fieldS + beta_Y10 + beta_fld10)/4
+  lam.K.Y10 <- exp(beta_Int + beta_Y10)/4
+  lam.S.Y12 <- exp(beta_Int + beta_fieldS + beta_Y12 + beta_fld12)/4
+  lam.K.Y12 <- exp(beta_Int + beta_Y12)/4
+  lam.S.Y13 <- exp(beta_Int + beta_fieldS + beta_Y13 + beta_fld13)/4
+  lam.K.Y13 <- exp(beta_Int + beta_Y13)/4
+  lam.S.Y18 <- exp(beta_Int + beta_fieldS)/4
+  lam.K.Y18 <- exp(beta_Int)/4
+  lam.S.Y19 <- exp(beta_Int + beta_fieldS + beta_Y19 + beta_fld19)/4
+  lam.K.Y19 <- exp(beta_Int + beta_Y19)/4
+  lam.S.Y24 <- exp(beta_Int + beta_fieldS + beta_Y24 + beta_fld24)/4
+  lam.K.Y24 <- exp(beta_Int + beta_Y24)/4
+  lam.S.Y25 <- exp(beta_Int + beta_fieldS + beta_Y25 + beta_fld25)/4
+  lam.K.Y25 <- exp(beta_Int + beta_Y25)/4
+  area.S <- 3.141*100*100/10000 # converted to ha
+  area.K <- 3.141*100*100/10000 # converted to ha
+  
+  # density: mean count per sampling period per ha
+  D.S.Y10 <- (lam.S.Y10)/area.S
+  D.K.Y10 <- (lam.K.Y10)/area.K  
+  D.S.Y12 <- (lam.S.Y12)/area.S
+  D.K.Y12 <- (lam.K.Y12)/area.K  
+  D.S.Y13 <- (lam.S.Y13)/area.S
+  D.K.Y13 <- (lam.K.Y13)/area.K  
+  D.S.Y18 <- (lam.S.Y18)/area.S
+  D.K.Y18 <- (lam.K.Y18)/area.K 
+  D.S.Y19 <- (lam.S.Y19)/area.S
+  D.K.Y19 <- (lam.K.Y19)/area.K  
+  D.S.Y24 <- (lam.S.Y24)/area.S
+  D.K.Y24 <- (lam.K.Y24)/area.K
+  D.S.Y25 <- (lam.S.Y25)/area.S
+  D.K.Y25 <- (lam.K.Y25)/area.K
+  
+  # annual sigma for half-normal detection function
+  sigma10 <- sigma[1]
+  sigma12 <- sigma[20]
+  sigma13 <- sigma[38]
+  sigma18 <- sigma[57]
+  sigma19 <- sigma[76]
+  sigma24 <- sigma[95]
+  sigma25 <- sigma[114]
 }
-",fill=TRUE, file="JAGS/distance_JAGS_model_2025.txt")
-
-# Inits
-inits.fun()
+",fill=TRUE, file="JAGS/distance_model_2025.txt")
 
 # Params to save
-params <- c("mu_alpha", "alpha_year_used", 
-            "beta_int", "beta_field", "beta_Y10", "beta_Y12", 
-            "beta_Y13", "beta_Y19", "beta_Y24",
-            "beta_Y25", "beta_fieldY10",  "beta_fieldY12", 
-            "beta_fieldY13", "beta_fieldY19",
-            "beta_fieldY24", "beta_fieldY25",
+params <- c("alpha_Int", "alpha_Y10", "alpha_Y12",
+            "alpha_Y13", "alpha_Y19", "alpha_Y24",
+            "alpha_Y25",
+            "beta_Int", "beta_fieldS",
+            "beta_Y10", "beta_Y12", 
+            "beta_Y13", "beta_Y19",
+            "beta_Y24", "beta_Y25",
+            "beta_fld10", "beta_fld12",
+            "beta_fld13", "beta_fld19",
+            "beta_fld24", "beta_fld25",
             "D.S.Y10", "D.K.Y10", 
             "D.S.Y12", "D.K.Y12", 
             "D.S.Y13", "D.K.Y13",            
@@ -180,27 +149,94 @@ params <- c("mu_alpha", "alpha_year_used",
             "lam.S.Y18", "lam.K.Y18",
             "lam.S.Y19", "lam.K.Y19",
             "lam.S.Y24", "lam.K.Y24",
-            "sigma")
+            "lam.S.Y25", "lam.K.Y25",
+            "sigma10", "sigma12", "sigma13",
+            "sigma18", "sigma19", "sigma24",
+            "sigma25")
 
 # MCMC settings
-ni <- 9000   ;   nb <- 100   ; na <- 3000;   nt <- 30   ;   nc <- 3
+ni <- 130000   ;   nb <- 10000; na <- 30000;   nt <- 30   ;   nc <- 3
+
+# --- BOBOLINK
+
+# Inits
+bNst <- b$ncap + 1
+inits.fun <- function(){list(alpha_Int=4, alpha_Y10=0, alpha_Y12=0,
+                             alpha_Y13=0.5, alpha_Y19=0, alpha_Y24=0, 
+                             alpha_Y25=0,
+                             beta_Int=2, beta_fieldS = 0, beta_Y10 = 0, 
+                             beta_Y12 = 0, beta_Y13 = 0, beta_Y19 = 0, 
+                             beta_Y24 = 0.5, beta_Y25 = 0.5, beta_fld10 = 0, 
+                             beta_fld12 = 0, beta_fld13 = 0, beta_fld19 = 0, 
+                             beta_fld24 = 0, beta_fld25 = 0, N=bNst)}
 
 # Run JAGS and summarize posteriors
-out <- jagsUI::jags(data = b, 
+bobo_out <- jagsUI::jags(data = b, 
                     inits = inits.fun, 
                     parameters.to.save = params, 
-                    model.file = "JAGS/distance_JAGS_model_2025.txt",
+                    model.file = "JAGS/distance_model_2025.txt",
                     n.thin=nt, n.chains=nc, n.burnin=nb, n.iter=ni,
                     n.adapt = na,
                     n.cores = nc)
-# sink("output/bobolink_2025.txt")
-print(out, 2)
-# sink()
-# jagsUI:: traceplot(out)
-# saveRDS(out, "output/bobo.psi.year.field.int.p.year.rds")
+sink("output/bobo_2025.txt")
+print(bobo_out, 2)
+sink()
+# jagsUI:: traceplot(bobo_out)
+saveRDS(bobo_out, "output/bobo_2025.rds")
 
+# --- GRASSHOPPER SPARROW
 
+# Inits
+gNst <- g$ncap + 1
+inits.fun <- function(){list(alpha_Int=4, alpha_Y10=0, alpha_Y12=0,
+                             alpha_Y13=0.5, alpha_Y19=0, alpha_Y24=0, 
+                             alpha_Y25=0,
+                             beta_Int=2, beta_fieldS = 0, beta_Y10 = 0, 
+                             beta_Y12 = 0, beta_Y13 = 0, beta_Y19 = 0, 
+                             beta_Y24 = 0.5, beta_Y25 = 0.5, beta_fld10 = 0, 
+                             beta_fld12 = 0, beta_fld13 = 0, beta_fld19 = 0, 
+                             beta_fld24 = 0, beta_fld25 = 0, N=gNst)}
 
+# Run JAGS and summarize posteriors
+grsp_out <- jagsUI::jags(data = g, 
+                         inits = inits.fun, 
+                         parameters.to.save = params, 
+                         model.file = "JAGS/distance_model_2025.txt",
+                         n.thin=nt, n.chains=nc, n.burnin=nb, n.iter=ni,
+                         n.adapt = na,
+                         n.cores = nc)
+sink("output/grsp_2025.txt")
+print(grsp_out, 2)
+sink()
+# jagsUI:: traceplot(grsp_out)
+saveRDS(grsp_out, "output/grsp_2025.rds")
+
+# --- EASTERN MEADOWLARK
+
+# Inits
+eNst <- e$ncap + 1
+inits.fun <- function(){list(alpha_Int=4, alpha_Y10=0, alpha_Y12=0,
+                             alpha_Y13=0.5, alpha_Y19=0, alpha_Y24=0, 
+                             alpha_Y25=0,
+                             beta_Int=2, beta_fieldS = 0, beta_Y10 = 0, 
+                             beta_Y12 = 0, beta_Y13 = 0, beta_Y19 = 0, 
+                             beta_Y24 = 0.5, beta_Y25 = 0.5, beta_fld10 = 0, 
+                             beta_fld12 = 0, beta_fld13 = 0, beta_fld19 = 0, 
+                             beta_fld24 = 0, beta_fld25 = 0, N=eNst)}
+
+# Run JAGS and summarize posteriors
+eame_out <- jagsUI::jags(data = e, 
+                         inits = inits.fun, 
+                         parameters.to.save = params, 
+                         model.file = "JAGS/distance_model_2025.txt",
+                         n.thin=nt, n.chains=nc, n.burnin=nb, n.iter=ni,
+                         n.adapt = na,
+                         n.cores = nc)
+sink("output/eame_2025.txt")
+print(eame_out, 2)
+sink()
+# jagsUI:: traceplot(eame_out)
+saveRDS(eame_out, "output/eame_2025.rds")
 
 ### PLOT
 
