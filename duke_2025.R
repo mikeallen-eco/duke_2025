@@ -23,21 +23,28 @@ e <- get_jags_data_for_distance_sampling(spname = "EAME", dist_threshold = 100)
 
 # --- Bobolink
 
-bobo_out <- run_JAGS_mod(jags_data = b, sp_name = "bobo")
+bobo_out <- run_JAGS_mod(jags_data = b, 
+                         sp_name = "bobo",
+                         mod = "JAGS/distance_model_2025_testing.txt")
 bobo_out # examine output
 jagsUI:: traceplot(bobo_out) # examine trace plots
+get_alpha_priors("output/bobo_2025.rds") # mu 0.04038597, tau 68.7941
 
 # --- Grasshopper Sparrow
 
-grsp_out <- run_JAGS_mod(jags_data = g, sp_name = "grsp")
+grsp_out <- run_JAGS_mod(jags_data = g, sp_name = "grsp",
+                         mod = "JAGS/distance_model_2025_testing.txt")
 grsp_out # examine output
 jagsUI:: traceplot(grsp_out) # examine trace plots
+get_alpha_priors("output/grsp_2025.rds") # mu -0.01283873; tau 36.32771
 
 # --- Eastern Meadowlark
 
-eame_out <- run_JAGS_mod(jags_data = e, sp_name = "eame")
+eame_out <- run_JAGS_mod(jags_data = e, sp_name = "eame",
+                         mod = "JAGS/distance_model_2025_testing.txt")
 eame_out # examine output
 jagsUI:: traceplot(eame_out) # examine trace plots
+get_alpha_priors("output/eame_2025.rds") # mu 0.9254752; tau 3.794496
 
 
 ### --- Step 3. plot density over time based on hierarchical distance sampling model
@@ -45,6 +52,7 @@ jagsUI:: traceplot(eame_out) # examine trace plots
 (bobo_density <- plot_HDS_density(mod = "output/bobo_2025.rds"))
 (grsp_density <- plot_HDS_density(mod = "output/grsp_2025.rds"))
 (eame_density <- plot_HDS_density(mod = "output/eame_2025.rds"))
+
 
 ### --- Step 4. plot density over time based on raw counts
 

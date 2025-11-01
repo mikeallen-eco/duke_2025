@@ -78,10 +78,10 @@ model{
   # annual sigma for half-normal detection function
   sigma10 <- sigma[1]
   sigma12 <- sigma[20]
-  sigma13 <- sigma[38]
-  sigma18 <- sigma[57]
-  sigma19 <- sigma[76]
-  sigma24 <- sigma[95]
-  sigma25 <- sigma[114]
+  sigma13 <- sigma[39]
+  sigma18 <- sigma[58]
+  sigma19 <- sigma[77]
+  sigma24 <- sigma[96]
+  sigma25 <- sigma[115]
 }
 

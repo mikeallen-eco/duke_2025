@@ -31,7 +31,8 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
   colnames(bin_edges) <- c("lower", "upper")
   bin_edges <- bin_edges |> dplyr::mutate(lower = as.numeric(lower), upper = as.numeric(upper))
   sp_data_early_years$dist <- runif(n_missing, min = bin_edges$lower, max = bin_edges$upper)
-
+  sp_data_early_years$dist <- 9999
+  
   # recombine 2010-2013 data to 2018+ data
   sp_data <- sp_data_early_years %>%
     bind_rows(sp_data_later_years) %>%
@@ -89,15 +90,22 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
   dclass <- sp_data_expanded$dist %/% delta + 1   # Convert distance to distance category
   nD <- length(midpt)               # Number of distance intervals
   dclass <- dclass[!is.na(sp_data_expanded[,"dist.na"])] # Observed categorical observations
+  # special line to recode years 2010-2013 as dclass = NA (= unobserved and informed solely by the prior)
+  dclass[dclass==2000] <- NA
   nind <- length(dclass)             # Total number of individuals detected
   nsites <- length(unique(site)) + length(unique(sites0))
+  
+  # define species number code for species-specific Year 2010-2013 priors
+  if(spname %in% "BOBO"){species <- 1}
+  if(spname %in% "GRSP"){species <- 2}
+  if(spname %in% "EAME"){species <- 3}
   
   # Bundle and summarize data set
   jags.data <- list(nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,
                     delta=delta, ncap=ncap, field=site.covs$fld, 
                     Y10 = site.covs$Y10, Y12 = site.covs$Y12, Y13 = site.covs$Y13,
                     Y19 = site.covs$Y19, Y24 = site.covs$Y24, Y25 = site.covs$Y25,
-                    dclass=dclass, site=site)
+                    dclass=dclass, site=site, species=species)
   
   return(jags.data)
   

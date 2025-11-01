@@ -5,7 +5,7 @@ get_alpha_priors <- function(mod = "output/bobo_2025.rds"){
 out <- readRDS(mod)
 
 # combine posteriors for years with alpha slope estimates
-sims <- c(btest$sims.list$alpha_Y19, btest$sims.list$alpha_Y24, btest$sims.list$alpha_Y25)
+sims <- c(out$sims.list$alpha_Y19, out$sims.list$alpha_Y24, out$sims.list$alpha_Y25)
 
 # get posterior mean and SD for those pooled posteriors
 mu <- mean(sims)

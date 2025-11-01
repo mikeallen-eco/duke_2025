@@ -4,7 +4,7 @@ library(jagsUI)
 
 run_JAGS_mod <- function(jags_data, 
                          sp_name = "bobo",
-                         mod = "JAGS/distance_model_2025.txt",
+                         mod,
                          ni = 130000, nb = 10000, 
                          na = 30000, nt = 30, nc = 3){
   
@@ -43,7 +43,7 @@ run_JAGS_mod <- function(jags_data,
   
   params <- c("alpha_Int", "alpha_Y10", "alpha_Y12",
               "alpha_Y13", "alpha_Y19", "alpha_Y24",
-              "alpha_Y25",
+              "alpha_Y25", "alpha_Y10_Y13",
               "beta_Int", "beta_fieldS",
               "beta_Y10", "beta_Y12", 
               "beta_Y13", "beta_Y19",
@@ -72,18 +72,19 @@ run_JAGS_mod <- function(jags_data,
                                beta_Y12 = 0, beta_Y13 = 0, beta_Y19 = 0, 
                                beta_Y24 = 0.5, beta_Y25 = 0.5, beta_fld10 = 0, 
                                beta_fld12 = 0, beta_fld13 = 0, beta_fld19 = 0, 
-                               beta_fld24 = 0, beta_fld25 = 0, N=bNst)}
+                               beta_fld24 = 0, beta_fld25 = 0, N=Nst)}
   
   ### --- Run JAGS and save output
   
   out <- jagsUI::jags(data = jags_data, 
                       inits = inits.fun, 
                       parameters.to.save = params, 
-                      model.file = "JAGS/distance_model_2025.txt",
+                      model.file = mod,
                       n.thin=nt, n.chains=nc, n.burnin=nb, n.iter=ni,
                       n.adapt = na,
                       n.cores = nc)
   sink(file.path("output", paste0(sp_name, "_2025.txt")))
+  print(out)
   sink()
   
   saveRDS(out, file.path("output", paste0(sp_name, "_2025.rds")))
