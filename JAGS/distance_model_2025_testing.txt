@@ -2,9 +2,9 @@
 model{
   # Priors
   alpha_Int ~ dunif(-5,5)
-  alpha_Y10 ~ dunif(-5,5)
-  alpha_Y12 ~ dunif(-5,5)
-  alpha_Y13 ~ dunif(-5,5)
+  alpha_Y10_Y13 ~ dnorm(0.04297246, 68.02483)
+#  alpha_Y12 ~ dnorm(0.04297246, 68.02483)
+#  alpha_Y13 ~ dnorm(0.04297246, 68.02483)
   alpha_Y19 ~ dunif(-5,5)
   alpha_Y24 ~ dunif(-5,5)
   alpha_Y25 ~ dunif(-5,5)
@@ -52,7 +52,7 @@ model{
         beta_fld25 * field[s] * Y25[s]
     
     # linear model of detection
-    log(sigma[s]) <- alpha_Int + alpha_Y10 * Y10[s] + alpha_Y12 * Y12[s] +
+    log(sigma[s]) <- alpha_Int + alpha_Y10_Y13 * Y10[s] + alpha_Y12 * Y12[s] +
                       alpha_Y13 * Y13[s] + alpha_Y19 * Y19[s] +
                         alpha_Y24 * Y24[s] + alpha_Y25 * Y25[s]
   }
