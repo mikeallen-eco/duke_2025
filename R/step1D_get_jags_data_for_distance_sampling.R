@@ -73,7 +73,15 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
       Y18 = as.numeric(ifelse(year %in% "Y18", 1, 0)),
       Y19 = as.numeric(ifelse(year %in% "Y19", 1, 0)),
       Y24 = as.numeric(ifelse(year %in% "Y24", 1, 0)),
-      Y25 = as.numeric(ifelse(year %in% "Y25", 1, 0))
+      Y25 = as.numeric(ifelse(year %in% "Y25", 1, 0)),
+      yearIndex = case_when(Y10 == 1 ~ 1,
+                            Y12 == 1 ~ 2,
+                            Y13 == 1 ~ 3,
+                            Y18 == 1 ~ 4,
+                            Y19 == 1 ~ 5,
+                            Y24 == 1 ~ 6,
+                            Y25 == 1 ~ 7,
+                            TRUE ~ NA)
     )
   
   # Prepare final data for JAGS
@@ -105,7 +113,9 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
                     delta=delta, ncap=ncap, field=site.covs$fld, 
                     Y10 = site.covs$Y10, Y12 = site.covs$Y12, Y13 = site.covs$Y13,
                     Y19 = site.covs$Y19, Y24 = site.covs$Y24, Y25 = site.covs$Y25,
-                    dclass=dclass, site=site, species=species)
+                    dclass=dclass, site=site, species=species, 
+                    yearIndex = site.covs$yearIndex,
+                    nYears = length(unique(site.covs$yearIndex)))
   
   return(jags.data)
   

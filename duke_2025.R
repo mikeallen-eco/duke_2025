@@ -23,28 +23,29 @@ e <- get_jags_data_for_distance_sampling(spname = "EAME", dist_threshold = 100)
 
 # --- Bobolink
 
+set.seed(206)
 bobo_out <- run_JAGS_mod(jags_data = b, 
                          sp_name = "bobo",
-                         mod = "JAGS/distance_model_2025_testing.txt")
+                         mod = "JAGS/distance_model_2025_partial_pooling_REVERT.txt",
+                         ni = 370000, na = 10000, nb = 50000, nt = 30)
 bobo_out # examine output
-jagsUI:: traceplot(bobo_out) # examine trace plots
-get_alpha_priors("output/bobo_2025.rds") # mu 0.04038597, tau 68.7941
+# jagsUI:: traceplot(bobo_out) # examine trace plots
 
 # --- Grasshopper Sparrow
-
+set.seed(206)
 grsp_out <- run_JAGS_mod(jags_data = g, sp_name = "grsp",
-                         mod = "JAGS/distance_model_2025_testing.txt")
+                         mod = "JAGS/distance_model_2025_partial_pooling_REVERT.txt",
+                         ni = 370000, na = 10000, nb = 50000, nt = 30)
 grsp_out # examine output
-jagsUI:: traceplot(grsp_out) # examine trace plots
-get_alpha_priors("output/grsp_2025.rds") # mu -0.01283873; tau 36.32771
+# jagsUI:: traceplot(grsp_out) # examine trace plots
 
 # --- Eastern Meadowlark
-
+set.seed(202)
 eame_out <- run_JAGS_mod(jags_data = e, sp_name = "eame",
-                         mod = "JAGS/distance_model_2025_testing.txt")
+                         mod = "JAGS/distance_model_2025_partial_pooling_REVERT.txt",
+                         ni = 370000, na = 10000, nb = 50000, nt = 30)
 eame_out # examine output
-jagsUI:: traceplot(eame_out) # examine trace plots
-get_alpha_priors("output/eame_2025.rds") # mu 0.9254752; tau 3.794496
+# jagsUI:: traceplot(eame_out) # examine trace plots
 
 
 ### --- Step 3. plot density over time based on hierarchical distance sampling model

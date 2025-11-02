@@ -6,45 +6,47 @@ run_JAGS_mod <- function(jags_data,
                          sp_name = "bobo",
                          mod,
                          ni = 130000, nb = 10000, 
-                         na = 30000, nt = 30, nc = 3){
+                         na = 30000, nt = 1, nc = 3){
   
   # check if model output file exists first and only run if not
   if(!file.exists(file.path("output", paste0(sp_name, "_2025.rds")))){
     
   ### --- helper function to load inits
+  Nst <- jags_data$ncap + 1
+  nyears <- jags_data$nYears
+  # inits.fun <- function() {
+  #   list(
+  #     # --- Abundance model ---
+  #     beta_Int       = rnorm(1, 2, .1),     # mean log-abundance
+  #     beta_year      = rnorm(nyears, 0, 0.1),
+  #     beta_fieldS     = rnorm(nyears, 1, 0.5),   # modest site effect
+  #     
+  #     # --- Detection model ---
+  #     alpha_Int       = rnorm(1, 4, 0.1),      # mean log(sigma) ≈ 3.5
+  #     sd_year         = 0.15,      # detection SD
+  #     alpha_year      = rnorm(nyears, 0, 0.1),  # year-level random effects
+  #   
+  #     N=Nst)
+  # }
   
-  inits.fun <- function() {
-    list(
-      # --- Abundance model ---
-      beta_int       = rnorm(1, 0, 1),     # mean log-abundance
-      beta_field     = rnorm(1, 0, 0.5),   # modest site effect
-      beta_Y10       = rnorm(1, 0, 0.5),
-      beta_Y12       = rnorm(1, 0, 0.5),
-      beta_Y13       = rnorm(1, 0, 0.5),
-      beta_Y19       = rnorm(1, 0, 0.5),
-      beta_Y24       = rnorm(1, 0, 0.5),
-      beta_Y25       = rnorm(1, 0, 0.5),
-      
-      beta_fieldY10  = rnorm(1, 0, 0.5),
-      beta_fieldY12  = rnorm(1, 0, 0.5),
-      beta_fieldY13  = rnorm(1, 0, 0.5),
-      beta_fieldY19  = rnorm(1, 0, 0.5),
-      beta_fieldY24  = rnorm(1, 0, 0.5),
-      beta_fieldY25  = rnorm(1, 0, 0.5),
-      
-      # --- Detection model ---
-      mu_alpha       = rnorm(1, 3.5, 0.2),      # mean log(sigma) ≈ 3.5
-      sigma_alpha    = runif(1, 0.5, 1.5),      # detection SD
-      alpha_year     = rnorm(nyears, 3.5, 0.5)  # year-level random effects
-    )
-  }
+  ### --- define initial parameter states
+  
+  inits.fun <- function(){list(alpha_Int=4, alpha_Y10=0, alpha_Y12=0,
+                               alpha_Y13=0.5, alpha_Y19=0, alpha_Y24=0,
+                               alpha_Y25=0, alpha_year=rep(0,nyears), sd_year = 0.2,
+                               beta_Int=2, beta_fieldS = 0, beta_Y10 = 0,
+                               beta_Y12 = 0, beta_Y13 = 0, beta_Y19 = 0,
+                               beta_Y24 = 0, beta_Y25 = 0, beta_fld10 = 0,
+                               beta_fld12 = 0, beta_fld13 = 0, beta_fld19 = 0,
+                               beta_fld24 = 0, beta_fld25 = 0, N=Nst)}
   
   ### --- define model parameters to track
   
   params <- c("alpha_Int", "alpha_Y10", "alpha_Y12",
               "alpha_Y13", "alpha_Y19", "alpha_Y24",
-              "alpha_Y25", "alpha_Y10_Y13",
-              "beta_Int", "beta_fieldS",
+              "alpha_Y25", "alpha_Y10_Y13", "alpha_year",
+              "sd_year",
+              "beta_Int", "beta_year", "beta_fieldS",
               "beta_Y10", "beta_Y12", 
               "beta_Y13", "beta_Y19",
               "beta_Y24", "beta_Y25",
@@ -61,18 +63,6 @@ run_JAGS_mod <- function(jags_data,
               "sigma10", "sigma12", "sigma13",
               "sigma18", "sigma19", "sigma24",
               "sigma25")
-  
-  ### --- define initial parameter states
-  
-  Nst <- jags_data$ncap + 1
-  inits.fun <- function(){list(alpha_Int=4, alpha_Y10=0, alpha_Y12=0,
-                               alpha_Y13=0.5, alpha_Y19=0, alpha_Y24=0, 
-                               alpha_Y25=0,
-                               beta_Int=2, beta_fieldS = 0, beta_Y10 = 0, 
-                               beta_Y12 = 0, beta_Y13 = 0, beta_Y19 = 0, 
-                               beta_Y24 = 0.5, beta_Y25 = 0.5, beta_fld10 = 0, 
-                               beta_fld12 = 0, beta_fld13 = 0, beta_fld19 = 0, 
-                               beta_fld24 = 0, beta_fld25 = 0, N=Nst)}
   
   ### --- Run JAGS and save output
   

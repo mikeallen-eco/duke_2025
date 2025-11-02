@@ -86,7 +86,7 @@ plot_HDS_density <- function(mod = "output/bobo_2025.rds"){
            Dq90 = Nq90/pi)
   
   # define upper y-axis plotting limit
-  plot_y_upper <- max(plot_data$Dq97.5) + max(plot_data$Dq97.5)*0.2
+  plot_y_upper <- max(plot_data$Dq97.5) + max(plot_data$Dq97.5)*0.15
 
   # define species name y-axis labels
   if(alpha %in% "bobo"){lab_sp <- "Bobolink"}
