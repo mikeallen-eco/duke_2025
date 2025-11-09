@@ -81,7 +81,8 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
                             Y19 == 1 ~ 5,
                             Y24 == 1 ~ 6,
                             Y25 == 1 ~ 7,
-                            TRUE ~ NA)
+                            TRUE ~ NA),
+      useYear = as.numeric(ifelse(yearIndex %in% c(1,2,3), 0, 1))
     )
   
   # Prepare final data for JAGS
@@ -113,8 +114,9 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
                     delta=delta, ncap=ncap, field=site.covs$fld, 
                     Y10 = site.covs$Y10, Y12 = site.covs$Y12, Y13 = site.covs$Y13,
                     Y19 = site.covs$Y19, Y24 = site.covs$Y24, Y25 = site.covs$Y25,
-                    dclass=dclass, site=site, species=species, 
+                    dclass=dclass, site=site,
                     yearIndex = site.covs$yearIndex,
+                    useYear = c(0,0,0,1,1,1,1),
                     nYears = length(unique(site.covs$yearIndex)))
   
   return(jags.data)

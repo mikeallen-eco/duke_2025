@@ -3,7 +3,7 @@
 library(dplyr, quietly = T, warn.conflicts = F)
 library(lubridate, quietly = T, warn.conflicts = F)
 
-format_2010_2013_data_for_analysis <- function(path = "data/Duke_grassland_birds_2010_2013.csv"){
+format_2010_2013_data_for_analysis <- function(path = "data/Grassland_Birds_2010-2013_data.csv"){
 
 # read in and combine 2010, 2012, and 2013 data
 # read in 2010-2013 data, exclude points outside of Kaufman and Skeet
@@ -44,7 +44,8 @@ data <- read.csv(path) %>%
          perpt = paste0(period, pt)) %>%
   mutate(date = ymd(VisitDate)) %>%
   select(observer, year, date, time, pt, field, period, 
-         obsperpt, perpt, species = sp, num = n, distcat = dist)
+         obsperpt, perpt, species = sp, num = n, distcat = dist) %>%
+  filter(!distcat %in% "Greater than 100 m")
 
 return(data)
 

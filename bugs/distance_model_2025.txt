@@ -1,31 +1,50 @@
-
 model{
 
-  # Detection model priors
-  alpha_Int ~ dunif(-10,10)    # overall intercept for log(sigma)
+  # -------------------------------
+  # Year effects for detection (sigma)
+  # -------------------------------
 
-  # Random (partial-pooling) year effects for sigma
+  # Overall intercept for detection
+  alpha_Int ~ dunif(-5,1000) # dnorm(0, 0.04)   # weak prior: sd = 5
+
+  # Non-centered random effects for years
   for(t in 1:nYears){
-    alpha_year[t] ~ dnorm(0, tau_year)    # year-level deviations (mean 0)
+    alpha_year_raw[t] ~ dnorm(0, 1)
+    alpha_year_uncentered[t] <- alpha_year_raw[t] * sd_year
   }
-  tau_year <- pow(sd_year, -2)
-  sd_year ~ dunif(0, 5)   # weakly informative prior on year SD
-  
+
+  # Half-normal prior on sd_year
+  sd_year ~ dnorm(0, 1) T(0,)  # truncated at 0
+  tau_year <- pow(sd_year, -2)  # legacy if needed
+
+  # Compute mean over active years only (sum-to-zero constraint)
+  # useYear[t] is 1 if data present for year t, 0 if no data
+  nActive <- sum(useYear[])   # number of active years
+  sum_active_alpha <- sum(alpha_year_uncentered[] * useYear[])
+  mean_active <- ifelse(nActive > 0, sum_active_alpha / nActive, 0)
+
+  # Final alpha_year: centered for active years, zero for inactive years
+  for(t in 1:nYears){
+    alpha_year[t] <- (alpha_year_uncentered[t] - mean_active) * useYear[t]
+    # inactive years (useYear[t]=0) will have alpha_year[t]=0
+    # active years are centered so that mean(alpha_year[active])=0
+  }
+
   # Abundance model priors
-  beta_Int ~ dunif(-10,10)
-  beta_fieldS ~ dunif(-10,10) # field covariate
-  beta_Y10 ~ dunif(-10,10) # Y10 covariate
-  beta_Y12 ~ dunif(-10,10) # Y12 covariate
-  beta_Y13 ~ dunif(-10,10) # Y13 covariate
-  beta_Y19 ~ dunif(-10,10) # Y19 covariate
-  beta_Y24 ~ dunif(-10,10) # Y24 covariate
-  beta_Y25 ~ dunif(-10,10) # Y25 covariate
-  beta_fld10 ~ dunif(-10,10) # interaction covariate
-  beta_fld12 ~ dunif(-10,10) # interaction covariate
-  beta_fld13 ~ dunif(-10,10) # interaction covariate
-  beta_fld19 ~ dunif(-10,10) # interaction covariate
-  beta_fld24 ~ dunif(-10,10) # interaction covariate
-  beta_fld25 ~ dunif(-10,10) # interaction covariate
+  beta_Int ~ dunif(-5,5)
+  beta_fieldS ~ dunif(-5,5) # field covariate
+  beta_Y10 ~ dunif(-5,5) # Y10 covariate
+  beta_Y12 ~ dunif(-5,5) # Y12 covariate
+  beta_Y13 ~ dunif(-5,5) # Y13 covariate
+  beta_Y19 ~ dunif(-5,5) # Y19 covariate
+  beta_Y24 ~ dunif(-5,5) # Y24 covariate
+  beta_Y25 ~ dunif(-5,5) # Y25 covariate
+  beta_fld10 ~ dunif(-5,5) # interaction covariate
+  beta_fld12 ~ dunif(-5,5) # interaction covariate
+  beta_fld13 ~ dunif(-5,5) # interaction covariate
+  beta_fld19 ~ dunif(-5,5) # interaction covariate
+  beta_fld24 ~ dunif(-5,5) # interaction covariate
+  beta_fld25 ~ dunif(-5,5) # interaction covariate
 
   for(i in 1:nind){
     dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
@@ -40,8 +59,8 @@ model{
     }
     pcap[s] <- sum(f[s,])           # Pr(capture): sum of rectangular areas
 
-    ncap[s] ~ dbin(pcap[s], N[s])   # Part 2 of HM
-    N[s] ~ dpois(lambda[s])         # Part 3 of HM
+    # Marginalized observation model (Poisson)
+    ncap[s] ~ dpois( lambda[s] * pcap[s] )
     
     # linear model of abundance
     log(lambda[s]) <- beta_Int + beta_fieldS * field[s] + 
@@ -57,11 +76,10 @@ model{
     
     # linear model of detection
     log(sigma[s]) <- alpha_Int + alpha_year[ yearIndex[s] ]
+
   }
 
-  # Derived parameters
-  
-  # lambda: mean count per sample
+  # Derived parameters (unchanged)
   lam.S.Y10 <- exp(beta_Int + beta_fieldS + beta_Y10 + beta_fld10)/4
   lam.K.Y10 <- exp(beta_Int + beta_Y10)/4
   lam.S.Y12 <- exp(beta_Int + beta_fieldS + beta_Y12 + beta_fld12)/4
@@ -85,4 +103,12 @@ model{
   sigma19 <- sigma[77]
   sigma24 <- sigma[96]
   sigma25 <- sigma[115]
+  
+  pcap10 <- pcap[1]
+  pcap12 <- pcap[20]
+  pcap13 <- pcap[39]
+  pcap18 <- pcap[58]
+  pcap19 <- pcap[77]
+  pcap24 <- pcap[96]
+  pcap25 <- pcap[115]
 }
