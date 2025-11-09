@@ -5,7 +5,7 @@ model{
   # -------------------------------
 
   # Overall intercept for detection
-  alpha_Int ~ dunif(-5,1000) # dnorm(0, 0.04)   # weak prior: sd = 5
+  alpha_Int ~ dunif(-10,10) # dnorm(0, 0.04)   # weak prior: sd = 5
 
   # Non-centered random effects for years
   for(t in 1:nYears){

@@ -44,7 +44,7 @@ grsp_out # examine output
 set.seed(206)
 eame_out <- run_JAGS_mod(jags_data = e, sp_name = "eame",
                          mod = "bugs/distance_model_2025.txt",
-                         ni = 70000, na = 1000, nb = 10000, nt = 3,
+                         ni = 100000, na = 1000, nb = 10000, nt = 3,
                          previous_model_run = NULL)
 eame_out # examine output
 # jagsUI:: traceplot(eame_out) # examine trace plots
