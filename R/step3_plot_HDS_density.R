@@ -92,6 +92,7 @@ plot_HDS_density <- function(mod = "output/bobo_2025.rds"){
   if(alpha %in% "bobo"){lab_sp <- "Bobolink"}
   if(alpha %in% "eame"){lab_sp <- "Eastern Meadowlark"}
   if(alpha %in% "grsp"){lab_sp <- "Grasshopper Sparrow"}
+  if(alpha %in% "rwbl"){lab_sp <- "Red-winged Blackbird"}
   
   # create the time series plot
   plot <- ggplot(plot_data) +

@@ -57,6 +57,7 @@ rwbl_out # examine output
 (bobo_density <- plot_HDS_density(mod = "output/bobo_2025.rds"))
 (grsp_density <- plot_HDS_density(mod = "output/grsp_2025.rds"))
 (eame_density <- plot_HDS_density(mod = "output/eame_2025.rds"))
+(rwbl_density <- plot_HDS_density(mod = "output/rwbl_2025.rds"))
 
 
 ### --- Step 4. plot detection probability over time (K+S)
