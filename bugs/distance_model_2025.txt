@@ -31,20 +31,20 @@ model{
   }
 
   # Abundance model priors
-  beta_Int ~ dunif(-5,5)
-  beta_fieldS ~ dunif(-5,5) # field covariate
-  beta_Y10 ~ dunif(-5,5) # Y10 covariate
-  beta_Y12 ~ dunif(-5,5) # Y12 covariate
-  beta_Y13 ~ dunif(-5,5) # Y13 covariate
-  beta_Y19 ~ dunif(-5,5) # Y19 covariate
-  beta_Y24 ~ dunif(-5,5) # Y24 covariate
-  beta_Y25 ~ dunif(-5,5) # Y25 covariate
-  beta_fld10 ~ dunif(-5,5) # interaction covariate
-  beta_fld12 ~ dunif(-5,5) # interaction covariate
-  beta_fld13 ~ dunif(-5,5) # interaction covariate
-  beta_fld19 ~ dunif(-5,5) # interaction covariate
-  beta_fld24 ~ dunif(-5,5) # interaction covariate
-  beta_fld25 ~ dunif(-5,5) # interaction covariate
+  beta_Int ~ dunif(-10,10)
+  beta_fieldS ~ dunif(-10,10) # field covariate
+  beta_Y10 ~ dunif(-10,10) # Y10 covariate
+  beta_Y12 ~ dunif(-10,10) # Y12 covariate
+  beta_Y13 ~ dunif(-10,10) # Y13 covariate
+  beta_Y19 ~ dunif(-10,10) # Y19 covariate
+  beta_Y24 ~ dunif(-10,10) # Y24 covariate
+  beta_Y25 ~ dunif(-10,10) # Y25 covariate
+  beta_fld10 ~ dunif(-10,10) # interaction covariate
+  beta_fld12 ~ dunif(-10,10) # interaction covariate
+  beta_fld13 ~ dunif(-10,10) # interaction covariate
+  beta_fld19 ~ dunif(-10,10) # interaction covariate
+  beta_fld24 ~ dunif(-10,10) # interaction covariate
+  beta_fld25 ~ dunif(-10,10) # interaction covariate
 
   for(i in 1:nind){
     dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM

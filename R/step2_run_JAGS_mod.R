@@ -4,10 +4,8 @@ library(jagsUI)
 
 run_JAGS_mod <- function(jags_data, 
                          sp_name = "bobo",
-                         mod,
-                         ni = 130000, nb = 10000, 
-                         na = 30000, nt = 1, nc = 3,
-                         previous_model_run = NULL){
+                         mod, nc = 3,
+                         ni = 100000, na = 1000, nb = 10000, nt = 3){
   
   # check if model output file exists first and only run if not
   if(!file.exists(file.path("output", paste0(sp_name, "_2025.rds")))){
@@ -16,9 +14,6 @@ run_JAGS_mod <- function(jags_data,
   Nst <- jags_data$ncap + 1
   nyears <- jags_data$nYears
   
-    # If no previous model run provided → generic random initialization
-    if (is.null(previous_model_run)) {message("No previous model run file detected. Using generic inits values...")}
-
     inits.fun <- function() {
         list(
           alpha_Int = rnorm(1, 4, 0.5),
@@ -41,34 +36,7 @@ run_JAGS_mod <- function(jags_data,
           N = Nst
         )
     }
-    
-    inits_names <- names(inits.fun())
       
-    # If previous model run provided → use posterior means as starting values
-    if (!is.null(previous_model_run)) {
-      message("Previous model run file detected. Using posterior means as inits...")
-      inits.fun <- function() {
-        mod <- readRDS(previous_model_run)
-        
-        # Check structure
-        if (!"mean" %in% names(mod)) {
-          stop("readRDS(previous_model_run) must have a 'mean' element containing posterior means.")
-        }
-        
-        inits_list <- mod$mean
-        
-        # Drop derived parameters (e.g., those with 'lam', 'dev', or 'sig' in name)
-        names_to_drop <- names(inits_list)[grepl("lam|dev|sig", names(inits_list))]
-        inits_list <- inits_list[!(names(inits_list) %in% names_to_drop)]
-        
-        # Ensure N is properly initialized
-        inits_list$N <- Nst
-        
-        # Return a plain list for JAGS
-        as.list(inits_list)
-      }
-    }
-  
   ### --- define model parameters to track
   
   params <- c("alpha_Int", "alpha_Y10", "alpha_Y12",

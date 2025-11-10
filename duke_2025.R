@@ -15,6 +15,7 @@ d <- bind_rows(d10_13, d18_19, d24, d25)
 b <- get_jags_data_for_distance_sampling(spname = "BOBO", dist_threshold = 100)
 g <- get_jags_data_for_distance_sampling(spname = "GRSP", dist_threshold = 100)
 e <- get_jags_data_for_distance_sampling(spname = "EAME", dist_threshold = 100)
+r <- get_jags_data_for_distance_sampling(spname = "RWBL", dist_threshold = 100)
 
 
 ### --- Step 2. run JAGS models
@@ -25,28 +26,29 @@ e <- get_jags_data_for_distance_sampling(spname = "EAME", dist_threshold = 100)
 set.seed(206)
 bobo_out <- run_JAGS_mod(jags_data = b, 
                          sp_name = "bobo",
-                         mod = "bugs/distance_model_2025.txt",
-                         ni = 70000, na = 1000, nb = 10000, nt = 3,
-                         previous_model_run = NULL)
+                         mod = "bugs/distance_model_2025.txt")
 bobo_out # examine output
 # jagsUI:: traceplot(bobo_out) # examine trace plots
 
 # --- Grasshopper Sparrow
 set.seed(206)
 grsp_out <- run_JAGS_mod(jags_data = g, sp_name = "grsp",
-                         mod = "bugs/distance_model_2025.txt",
-                         ni = 70000, na = 1000, nb = 10000, nt = 3,
-                         previous_model_run = NULL)
+                         mod = "bugs/distance_model_2025.txt")
 grsp_out # examine output
 # jagsUI:: traceplot(grsp_out) # examine trace plots
 
 # --- Eastern Meadowlark
 set.seed(206)
 eame_out <- run_JAGS_mod(jags_data = e, sp_name = "eame",
-                         mod = "bugs/distance_model_2025.txt",
-                         ni = 100000, na = 1000, nb = 10000, nt = 3,
-                         previous_model_run = NULL)
+                         mod = "bugs/distance_model_2025.txt")
 eame_out # examine output
+# jagsUI:: traceplot(eame_out) # examine trace plots
+
+# --- Red-winged Blackbird
+set.seed(206)
+rwbl_out <- run_JAGS_mod(jags_data = r, sp_name = "rwbl",
+                         mod = "bugs/distance_model_2025.txt")
+rwbl_out # examine output
 # jagsUI:: traceplot(eame_out) # examine trace plots
 
 
@@ -57,12 +59,17 @@ eame_out # examine output
 (eame_density <- plot_HDS_density(mod = "output/eame_2025.rds"))
 
 
-### --- Step 4. plot density over time based on raw counts
+### --- Step 4. plot detection probability over time (K+S)
+
+
+
+
+### --- Step 6. plot density over time based on raw counts
 
 # format raw count data
 
 plot_raw_density 
-alpha <- substr(mod, 8,11)
+ifelse()
 
 raw_plot_data <- d %>% 
   filter(species %in% alpha)
