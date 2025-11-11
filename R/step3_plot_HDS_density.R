@@ -85,6 +85,9 @@ plot_HDS_density <- function(mod = "output/bobo_2025.rds"){
            Dq10 = Nq10/pi,
            Dq90 = Nq90/pi)
   
+  # censor unreliable early years if RWBL
+  if(alpha %in% "rwbl"){plot_data <- plot_data %>% filter(year >= 2018)}
+  
   # define upper y-axis plotting limit
   plot_y_upper <- max(plot_data$Dq97.5) + max(plot_data$Dq97.5)*0.15
 
