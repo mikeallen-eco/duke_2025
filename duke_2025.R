@@ -26,7 +26,7 @@ r <- get_jags_data_for_distance_sampling(spname = "RWBL", dist_threshold = 100)
 set.seed(206)
 bobo_out <- run_JAGS_mod(jags_data = b, 
                          sp_name = "bobo",
-                         mod = "bugs/distance_model_2025.txt")
+                         mod = "bugs/distance_model_2025_pretty.txt")
 bobo_out # examine output
 # jagsUI:: traceplot(bobo_out) # examine trace plots
 
@@ -60,7 +60,39 @@ rwbl_out # examine output
 (rwbl_density <- plot_HDS_density(mod = "output/rwbl_2025.rds"))
 
 
-### --- Step 4. plot detection probability over time (K+S)
+### --- Step 4. get 2025 densities + change from previous year
+
+get_HDS_density <- function(mod){
+  
+  model <- readRDS(mod)
+  dens_S_25 <- model$sims.list$lam.S.Y25 / pi
+  dens_K_25 <- model$sims.list$lam.K.Y25 / pi
+  dens_S_24 <- model$sims.list$lam.S.Y24 / pi
+  dens_K_24 <- model$sims.list$lam.K.Y24 / pi
+  
+  chg_S_25_24 <- 100*((dens_S_25 - dens_S_24) / (dens_S_24))
+  chg_K_25_24 <- 100*((dens_K_25 - dens_K_24) / (dens_K_24))
+  
+  list(S_med = median(dens_S_25),
+       S_q2.5 = quantile(dens_S_25, 0.025),
+       S_q97.5 = quantile(dens_S_25, 0.975),
+       K_med = median(dens_K_25),
+       K_q2.5 = quantile(dens_K_25, 0.025),
+       K_q97.5 = quantile(dens_K_25, 0.975),
+       chg_S_med = median(chg_S_25_24),
+       chg_S_q2.5 = quantile(chg_S_25_24, 0.025),
+       chg_S_q97.5 = quantile(chg_S_25_24, 0.975),
+       chg_K_med = median(chg_K_25_24),
+       chg_K_q2.5 = quantile(chg_K_25_24, 0.025),
+       chg_K_q97.5 = quantile(chg_K_25_24, 0.975))
+  
+
+}
+
+(grsp_density_stats <- get_HDS_density(mod = "output/grsp_2025.rds"))
+(bobo_density_stats <- get_HDS_density(mod = "output/bobo_2025_working.rds"))
+(eame_density_stats <- get_HDS_density(mod = "output/eame_2025.rds"))
+(rwbl_density_stats <- get_HDS_density(mod = "output/rwbl_2025.rds"))
 
 
 
