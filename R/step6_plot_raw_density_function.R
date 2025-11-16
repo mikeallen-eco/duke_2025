@@ -57,19 +57,6 @@ plot_raw_density <- function(data = d, alpha = "GRSP"){
   
   
   ggsave(file.path("output", paste0(tolower(alpha), "_raw.png")), height = 4, width = 6, dpi = 600)
-  
-  
-  ### also make map of mean raw counts
-  
-  library(sf)
-  coords <- read.csv("writing/pt_coords_2024.csv") %>%
-    st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>%
-    left_join(raw_plot_data)
-  
-  
-  
-  
-  list(raw_plot = raw_plot,
-       raw_map = raw_map)
-  
+
+  raw_plot
 }

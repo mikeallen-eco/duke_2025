@@ -3,7 +3,7 @@ Estimates based on 3 chains of 1e+05 iterations,
 adaptation = 1000 iterations (sufficient),
 burn-in = 10000 iterations and thin rate = 3,
 yielding 90000 total samples from the joint posterior. 
-MCMC ran for 15.596 minutes at time 2025-11-15 06:49:22.563362.
+MCMC ran for 15.267 minutes at time 2025-11-09 22:54:38.714172.
 
                   mean    sd     2.5%      50%    97.5% overlap0     f  Rhat n.eff
 alpha_Int        3.838 0.030    3.781    3.837    3.899    FALSE 1.000 1.000 27238

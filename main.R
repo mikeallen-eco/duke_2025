@@ -100,8 +100,13 @@ plot_raw_density(data = d, alpha = "EAME")
 plot_raw_density(data = d, alpha = "RWBL")
 
 
-### --- Mapping mean counts
+### --- Step 7. Mapping mean counts
 
+(grsp_map <- map_mean_counts(data = d, alpha = "GRSP"))
+(bobo_map <- map_mean_counts(data = d, alpha = "BOBO"))
+(eame_map <- map_mean_counts(data = d, alpha = "EAME"))
+(rwbl_map <- map_mean_counts(data = d, alpha = "RWBL"))
+library(patchwork)
+(grsp_map | bobo_map) / (eame_map | rwbl_map)
 
-
-
+ ggsave("output/all_map.png", height = 8, width = 12, dpi = 600)

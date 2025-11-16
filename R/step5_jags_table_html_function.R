@@ -1,3 +1,6 @@
+library(knitr)
+library(kableExtra)
+
 jags_table_html <- function(jags_model,
                             digits = 3,
                             full_table = TRUE,
@@ -24,8 +27,6 @@ jags_table_html <- function(jags_model,
   df[num_cols] <- lapply(df[num_cols], round, digits = digits)
   
   # Format with kable + kableExtra
-  library(knitr)
-  library(kableExtra)
   
   df %>%
     kable(format = "html",
