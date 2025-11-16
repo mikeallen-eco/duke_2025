@@ -1,6 +1,8 @@
 # analyze grassland bird density at Duke Farms 2010-2025 with Bayesian hierarchical distance sampling
 
+# Initialize (run this to load functions and libraries)
 source("R/setup.R")
+
 
 ### --- Step 1. Read in and format data
 
@@ -26,7 +28,7 @@ r <- get_jags_data_for_distance_sampling(spname = "RWBL", dist_threshold = 100)
 set.seed(206)
 bobo_out <- run_JAGS_mod(jags_data = b, 
                          sp_name = "bobo",
-                         mod = "bugs/distance_model_2025_pretty.txt")
+                         mod = "bugs/distance_model_2025.txt")
 bobo_out # examine output
 # jagsUI:: traceplot(bobo_out) # examine trace plots
 
@@ -60,7 +62,16 @@ rwbl_out # examine output
 (rwbl_density <- plot_HDS_density(mod = "output/rwbl_2025.rds"))
 
 
-### --- Step 4. get 2025 densities + change from previous year
+### --- Step 4. get 2025 summary stats (counts, densities, & change from previous year)
+
+# counts
+(counts <- d %>%
+  filter(year %in% "Y25",
+         dist < 101,
+         species %in% c("EAME", "BOBO", "GRSP", "RWBL")) %>%
+  group_by(species, period, field) %>%
+  summarize(sum = sum(num, na.rm = T)) %>%
+    arrange(species, field, period))
 
 (grsp_density_stats <- get_HDS_density(mod = "output/grsp_2025.rds"))
 (bobo_density_stats <- get_HDS_density(mod = "output/bobo_2025.rds"))
@@ -68,64 +79,29 @@ rwbl_out # examine output
 (rwbl_density_stats <- get_HDS_density(mod = "output/rwbl_2025.rds"))
 
 
-# Make tables
+# --- Step 5 - make tables for inclusion in the report
 
 grsp_table <- jags_table_html(readRDS("output/grsp_2025.rds"),full_table = F)
 bobo_table <- jags_table_html(readRDS("output/bobo_2025.rds"))
 eame_table <- jags_table_html(readRDS("output/eame_2025.rds"))
 rwbl_table <- jags_table_html(readRDS("output/rwbl_2025.rds"))
 
-kableExtra::save_kable(grsp_table, file = "grsp_jags_table.html")
-kableExtra::save_kable(bobo_table, file = "bobo_jags_table.html")
-kableExtra::save_kable(eame_table, file = "eame_jags_table.html")
-kableExtra::save_kable(rwbl_table, file = "rwbl_jags_table.html")
+kableExtra::save_kable(grsp_table, file = "output/grsp_jags_table.html")
+kableExtra::save_kable(bobo_table, file = "output/bobo_jags_table.html")
+kableExtra::save_kable(eame_table, file = "output/eame_jags_table.html")
+kableExtra::save_kable(rwbl_table, file = "output/rwbl_jags_table.html")
+
 
 ### --- Step 6. plot density over time based on raw counts
 
-# format raw count data
-
-plot_raw_density 
-ifelse()
-
-raw_plot_data <- d %>% 
-  filter(species %in% alpha)
-  filter(!is.na(dist)) %>% 
-  group_by(field, year, pt) %>% 
-  tally() %>%
-  right_join(allpts %>% select(year, field, pt) %>% distinct(), 
-             by = join_by(pt, year, field)) %>%
-  replace_na(list(n = 0)) %>%
-  arrange(pt) %>%
-  mutate(dens = n/(4*3.1415)) %>% 
-  group_by(field, year) %>% 
-  summarize(mean.num = mean(dens),
-            sd = sd(dens),
-            .groups = "drop") %>%
-  mutate(npts = c(rep(10,6), rep(9,6)),
-         yr = c(2010, 2012, 2013, 2018, 2019, 2024, 
-                2010, 2012, 2013, 2018, 2019, 2024),
-         se = sd/sqrt(npts))
-
-# plot
+plot_raw_density(data = d, alpha = "GRSP")
+plot_raw_density(data = d, alpha = "BOBO")
+plot_raw_density(data = d, alpha = "EAME")
+plot_raw_density(data = d, alpha = "RWBL")
 
 
-raw.b <- ggplot(raw.plot) +
-    geom_point(aes(x = yr, y = mean.num, color = field), size = 4,
-               position = position_dodge(0.5)) +
-    geom_errorbar(aes(x = yr, ymin = mean.num-(2*se), ymax = mean.num+(2*se),
-                      color = field),
-                  width = 0,
-                  position = position_dodge(0.5)) +
-    geom_line(aes(x = yr, y = mean.num, color = field),
-              position = position_dodge(0.5)) +
-    scale_color_manual(values = c("steelblue", "darkred")) +
-    scale_x_continuous(breaks = seq(2010,2024, by = 4)) +
-    ylim(0,2.5) +
-    labs(y = "BOBO density (raw no./ha)", x = "", 
-         color = "Field") +
-    theme_bw() +
-    theme(text = element_text(size = 13))
-)
+### --- Mapping mean counts
 
-ggsave("figures/BOBO_6years.raw.field.year.png", height = 4, width = 6, dpi = 400)
+
+
 

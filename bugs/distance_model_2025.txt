@@ -1,71 +1,104 @@
 model{
 
-  # -------------------------------
-  # Year effects for detection (sigma)
-  # -------------------------------
+  ###########################################################
+  # DETECTION MODEL PRIORS
+  ###########################################################
 
   # Overall intercept for detection
-  alpha_Int ~ dunif(-10,10) # dnorm(0, 0.04)   # weak prior: sd = 5
+  alpha_Int ~ dunif(-10, 10)          # uniform prior on mean detection for years with distance data
 
-  # Non-centered random effects for years
+  # ---------------------------------------------------------
+  # Random effect of year on detection
+  # ---------------------------------------------------------
   for(t in 1:nYears){
-    alpha_year_raw[t] ~ dnorm(0, 1)
-    alpha_year_uncentered[t] <- alpha_year_raw[t] * sd_year
+    alpha_year_raw[t] ~ dnorm(0, 1)                   # standard normal prior on annual deviations from the mean
+    alpha_year_uncentered[t] <- alpha_year_raw[t] * sd_year 
+    # sd_year is the Bayesian pooling step that allows shrinkage towards mean when information is weak
+      # in effect: alpha_year_uncentered[t] ~ Normal(0, sd_year^2)
   }
 
-  # Half-normal prior on sd_year
-  sd_year ~ dnorm(0, 1) T(0,)  # truncated at 0
-  tau_year <- pow(sd_year, -2)  # legacy if needed
+  # Half-normal prior (truncated at 0) on pooling parameter 
+  sd_year ~ dnorm(0, 1) T(0,)
 
-  # Compute mean over active years only (sum-to-zero constraint)
-  # useYear[t] is 1 if data present for year t, 0 if no data
-  nActive <- sum(useYear[])   # number of active years
+  # ---------------------------------------------------------
+  # Centering year effects
+  # ---------------------------------------------------------
+  
+  # purpose: alpha_year sums to zero for years with distance data 
+  nActive <- sum(useYear[])                           # count of active years
   sum_active_alpha <- sum(alpha_year_uncentered[] * useYear[])
-  mean_active <- ifelse(nActive > 0, sum_active_alpha / nActive, 0)
+  mean_active <- sum_active_alpha / nActive
 
-  # Final alpha_year: centered for active years, zero for inactive years
+  # Centered alpha_year: mean zero for active years, zero for inactive
   for(t in 1:nYears){
     alpha_year[t] <- (alpha_year_uncentered[t] - mean_active) * useYear[t]
-    # inactive years (useYear[t]=0) will have alpha_year[t]=0
-    # active years are centered so that mean(alpha_year[active])=0
+    # for active years, alpha_year averages to zero
+    # for inactive years with no detection data, it is exactly zero
   }
 
-  # Abundance model priors
-  beta_Int ~ dunif(-10,10)
-  beta_fieldS ~ dunif(-10,10) # field covariate
-  beta_Y10 ~ dunif(-10,10) # Y10 covariate
-  beta_Y12 ~ dunif(-10,10) # Y12 covariate
-  beta_Y13 ~ dunif(-10,10) # Y13 covariate
-  beta_Y19 ~ dunif(-10,10) # Y19 covariate
-  beta_Y24 ~ dunif(-10,10) # Y24 covariate
-  beta_Y25 ~ dunif(-10,10) # Y25 covariate
-  beta_fld10 ~ dunif(-10,10) # interaction covariate
-  beta_fld12 ~ dunif(-10,10) # interaction covariate
-  beta_fld13 ~ dunif(-10,10) # interaction covariate
-  beta_fld19 ~ dunif(-10,10) # interaction covariate
-  beta_fld24 ~ dunif(-10,10) # interaction covariate
-  beta_fld25 ~ dunif(-10,10) # interaction covariate
 
+  ###########################################################
+  # ABUNDANCE MODEL PRIORS
+  ###########################################################
+
+  beta_Int   ~ dunif(-10, 10)    # Intercept (year 2018)
+  beta_fieldS ~ dunif(-10, 10)   # Field covariate effect
+
+  # Year main effects
+  beta_Y10 ~ dunif(-10, 10)
+  beta_Y12 ~ dunif(-10, 10)
+  beta_Y13 ~ dunif(-10, 10)
+  beta_Y19 ~ dunif(-10, 10)
+  beta_Y24 ~ dunif(-10, 10)
+  beta_Y25 ~ dunif(-10, 10)
+
+  # Field × Year interaction effects
+  beta_fld10 ~ dunif(-10, 10)
+  beta_fld12 ~ dunif(-10, 10)
+  beta_fld13 ~ dunif(-10, 10)
+  beta_fld19 ~ dunif(-10, 10)
+  beta_fld24 ~ dunif(-10, 10)
+  beta_fld25 ~ dunif(-10, 10)
+
+
+  ###########################################################
+  # OBSERVATION MODEL: DETECTION & ABUNDANCE
+  ###########################################################
+
+  # --- Part 1: Distance class assignment ---
   for(i in 1:nind){
-    dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
+    dclass[i] ~ dcat(fc[site[i],])        # categorical detection outcome
   }
+
+  # --- Part 2: Site-level model ---
   for(s in 1:nsites){
-    # Construct cell probabilities for nD distance bands
-    for(g in 1:nD){                # midpt = mid-point of each band
-      log(p[s,g]) <- -midpt[g] * midpt[g] / (2 * sigma[s] * sigma[s])
-      pi[s,g] <- ((2 * midpt[g] ) / (B * B)) * delta # prob. per interval
-      f[s,g] <- p[s,g] * pi[s,g]
+
+    # -------------------------------------------------------
+    # Detection model: Half-normal function for each distance band
+    # -------------------------------------------------------
+    for(g in 1:nD){                       # loop over distance bands
+      log(p[s,g]) <- -midpt[g]^2 / (2 * sigma[s]^2)
+      pi[s,g] <- ((2 * midpt[g]) / (B^2)) * delta  # prob per interval
+      f[s,g]  <- p[s,g] * pi[s,g]
       fc[s,g] <- f[s,g] / pcap[s]
     }
-    pcap[s] <- sum(f[s,])           # Pr(capture): sum of rectangular areas
 
-    # Marginalized observation model (Poisson)
-    ncap[s] ~ dpois( lambda[s] * pcap[s] )
-    
-    # linear model of abundance
-    log(lambda[s]) <- beta_Int + beta_fieldS * field[s] + 
+    # Probability of detection (sum of areas under curve)
+    pcap[s] <- sum(f[s,])
+
+    # -------------------------------------------------------
+    # Marginalized observation model
+    # -------------------------------------------------------
+    ncap[s] ~ dpois(lambda[s] * pcap[s])  # observed captures
+
+    # -------------------------------------------------------
+    # Abundance model (log-scale)
+    # -------------------------------------------------------
+    log(lambda[s]) <-
+        beta_Int +
+        beta_fieldS * field[s] +
         beta_Y10 * Y10[s] + beta_Y12 * Y12[s] +
-        beta_Y13 * Y13[s] + beta_Y19 * Y19[s] + 
+        beta_Y13 * Y13[s] + beta_Y19 * Y19[s] +
         beta_Y24 * Y24[s] + beta_Y25 * Y25[s] +
         beta_fld10 * field[s] * Y10[s] +
         beta_fld12 * field[s] * Y12[s] +
@@ -73,29 +106,47 @@ model{
         beta_fld19 * field[s] * Y19[s] +
         beta_fld24 * field[s] * Y24[s] +
         beta_fld25 * field[s] * Y25[s]
-    
-    # linear model of detection
+
+    # -------------------------------------------------------
+    # Detection model (log-scale)
+    # -------------------------------------------------------
     log(sigma[s]) <- alpha_Int + alpha_year[ yearIndex[s] ]
 
-  }
+  } # end site loop
 
-  # Derived parameters (unchanged)
-  lam.S.Y10 <- exp(beta_Int + beta_fieldS + beta_Y10 + beta_fld10)/4
-  lam.K.Y10 <- exp(beta_Int + beta_Y10)/4
-  lam.S.Y12 <- exp(beta_Int + beta_fieldS + beta_Y12 + beta_fld12)/4
-  lam.K.Y12 <- exp(beta_Int + beta_Y12)/4
-  lam.S.Y13 <- exp(beta_Int + beta_fieldS + beta_Y13 + beta_fld13)/4
-  lam.K.Y13 <- exp(beta_Int + beta_Y13)/4
-  lam.S.Y18 <- exp(beta_Int + beta_fieldS)/4
-  lam.K.Y18 <- exp(beta_Int)/4
-  lam.S.Y19 <- exp(beta_Int + beta_fieldS + beta_Y19 + beta_fld19)/4
-  lam.K.Y19 <- exp(beta_Int + beta_Y19)/4
-  lam.S.Y24 <- exp(beta_Int + beta_fieldS + beta_Y24 + beta_fld24)/4
-  lam.K.Y24 <- exp(beta_Int + beta_Y24)/4
-  lam.S.Y25 <- exp(beta_Int + beta_fieldS + beta_Y25 + beta_fld25)/4
-  lam.K.Y25 <- exp(beta_Int + beta_Y25)/4
-  
-  # annual sigma for half-normal detection function
+
+  ###########################################################
+  # DERIVED PARAMETERS
+  ###########################################################
+
+  # Expected abundance per field/year combination (scaled /4)
+  lam.S.Y10 <- exp(beta_Int + beta_fieldS + beta_Y10 + beta_fld10) / 4
+  lam.K.Y10 <- exp(beta_Int + beta_Y10) / 4
+
+  lam.S.Y12 <- exp(beta_Int + beta_fieldS + beta_Y12 + beta_fld12) / 4
+  lam.K.Y12 <- exp(beta_Int + beta_Y12) / 4
+
+  lam.S.Y13 <- exp(beta_Int + beta_fieldS + beta_Y13 + beta_fld13) / 4
+  lam.K.Y13 <- exp(beta_Int + beta_Y13) / 4
+
+  lam.S.Y18 <- exp(beta_Int + beta_fieldS) / 4
+  lam.K.Y18 <- exp(beta_Int) / 4
+
+  lam.S.Y19 <- exp(beta_Int + beta_fieldS + beta_Y19 + beta_fld19) / 4
+  lam.K.Y19 <- exp(beta_Int + beta_Y19) / 4
+
+  lam.S.Y24 <- exp(beta_Int + beta_fieldS + beta_Y24 + beta_fld24) / 4
+  lam.K.Y24 <- exp(beta_Int + beta_Y24) / 4
+
+  lam.S.Y25 <- exp(beta_Int + beta_fieldS + beta_Y25 + beta_fld25) / 4
+  lam.K.Y25 <- exp(beta_Int + beta_Y25) / 4
+
+
+  ###########################################################
+  # DERIVED DETECTION PARAMETERS
+  ###########################################################
+
+  # Year-specific sigma estimates (for reference)
   sigma10 <- sigma[1]
   sigma12 <- sigma[20]
   sigma13 <- sigma[39]
@@ -103,7 +154,8 @@ model{
   sigma19 <- sigma[77]
   sigma24 <- sigma[96]
   sigma25 <- sigma[115]
-  
+
+  # Corresponding detection probabilities
   pcap10 <- pcap[1]
   pcap12 <- pcap[20]
   pcap13 <- pcap[39]
@@ -111,4 +163,5 @@ model{
   pcap19 <- pcap[77]
   pcap24 <- pcap[96]
   pcap25 <- pcap[115]
+
 }

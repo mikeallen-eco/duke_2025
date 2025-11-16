@@ -18,20 +18,20 @@ get_jags_data_for_distance_sampling <- function(df = d, spname = "BOBO", dist_th
   # extract all observations of the species (years 2010-2013 when distance data not available)
   sp_data_early_years <- df %>%
     filter(year %in% c("Y10", "Y12", "Y13")) %>%
-    filter(species %in% spname)
-    # filter(species %in% spname, dist < (dist_threshold + 1))
-  
+    filter(species %in% spname) %>%
+    mutate(dist = 9999)
+
   # impute distances for 2010-2013 (same bin probabilities as 2018+)
-  bins <- cut(sp_data_later_years$dist, breaks = seq(0, 100, by = 5), include.lowest = TRUE, right = FALSE)
-  bin_probs <- prop.table(table(bins)) # Compute bin probabilities
-  n_missing <- length(sp_data_early_years$dist)
-  set.seed(102) # Sample according to observed proportions
-  sampled_bins <- sample(names(bin_probs), size = n_missing, replace = TRUE, prob = bin_probs)
-  bin_edges <- as.data.frame(do.call(rbind, strsplit(gsub("\\[|\\)|\\]", "", sampled_bins), ",")))
-  colnames(bin_edges) <- c("lower", "upper")
-  bin_edges <- bin_edges |> dplyr::mutate(lower = as.numeric(lower), upper = as.numeric(upper))
-  sp_data_early_years$dist <- runif(n_missing, min = bin_edges$lower, max = bin_edges$upper)
-  sp_data_early_years$dist <- 9999
+  # bins <- cut(sp_data_later_years$dist, breaks = seq(0, 100, by = 5), include.lowest = TRUE, right = FALSE)
+  # bin_probs <- prop.table(table(bins)) # Compute bin probabilities
+  # n_missing <- length(sp_data_early_years$dist)
+  # set.seed(102) # Sample according to observed proportions
+  # sampled_bins <- sample(names(bin_probs), size = n_missing, replace = TRUE, prob = bin_probs)
+  # bin_edges <- as.data.frame(do.call(rbind, strsplit(gsub("\\[|\\)|\\]", "", sampled_bins), ",")))
+  # colnames(bin_edges) <- c("lower", "upper")
+  # bin_edges <- bin_edges |> dplyr::mutate(lower = as.numeric(lower), upper = as.numeric(upper))
+  # sp_data_early_years$dist <- runif(n_missing, min = bin_edges$lower, max = bin_edges$upper)
+  # sp_data_early_years$dist <- 9999
   
   # recombine 2010-2013 data to 2018+ data
   sp_data <- sp_data_early_years %>%
