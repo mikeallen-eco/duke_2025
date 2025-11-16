@@ -3,7 +3,10 @@ if(!dir.exists("output")){dir.create("output")}
 
 # load libraries and functions
 
-requireNamespace("dplyr", quietly = TRUE, warn) || install.packages("dplyr"); library(dplyr)
+if (!requireNamespace("dplyr", quietly = TRUE)) {
+  install.packages("dplyr")
+}
+library(dplyr)
 source("R/step1A_format_2010_2013_data_for_analysis.R")
 source("R/step1B_format_2018_2019_data_for_analysis.R")
 source("R/step1C_format_2024_2025_data_for_analysis.R")
