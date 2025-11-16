@@ -1,3 +1,6 @@
+# make output directory if needed
+if(!dir.exists("output")){dir.create("output")}
+
 # load libraries and functions
 
 requireNamespace("dplyr", quietly = TRUE, warn) || install.packages("dplyr"); library(dplyr)

@@ -3,7 +3,6 @@
 # Initialize (run this to load functions and libraries)
 source("R/setup.R")
 
-
 ### --- Step 1. Read in and format data
 
 # read in data for each set of years
