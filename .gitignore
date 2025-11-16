@@ -4,6 +4,7 @@
 .Ruserdata
 /data
 /writing
+/output
 *.rds
 *.png
 *.html
