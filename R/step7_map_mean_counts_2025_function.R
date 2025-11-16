@@ -82,6 +82,7 @@ map <- ggplot() +
       scale_y_continuous(
         labels = scales::label_number(accuracy = 0.001)
       ) +
+  coord_sf(crs = 26918) +
       labs(x = "", y = "", color = "Mean\ncount\nper ha") +
       theme_bw() +
       ggtitle(spname) +
@@ -91,6 +92,16 @@ map <- ggplot() +
         axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
         axis.text.y = element_text(size = 9)
       )
+
+if(alpha == "GRSP"){
+map <- map + geom_text(
+  data = site_data,
+  aes(label = pt, geometry = geometry),
+  stat = "sf_coordinates",
+  color = "black",
+  size = 1.5,
+  nudge_y = 0.001
+)}
   
   return(map)
   

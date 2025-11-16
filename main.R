@@ -108,4 +108,4 @@ plot_raw_density(data = d, alpha = "RWBL")
 library(patchwork)
 (grsp_map | bobo_map) / (eame_map | rwbl_map)
 
- ggsave("output/all_map.png", height = 8, width = 12, dpi = 600)
+ ggsave("output/all_map3.png", height = 8, width = 12, dpi = 600)
