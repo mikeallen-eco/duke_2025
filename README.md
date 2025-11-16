@@ -13,6 +13,7 @@ The script in the bugs folder defines the hierarchical distance sampling model.
 The data folder contains the raw bird survey data organized by study (2010-2013, 2018-2019, 2024). The 2025 data are contained within the subfolder `20250520_grassland_birds_2025_Allen` which was previously shared. Scanned datasheet for the 2025 season are stored in the Scanned Datasheets folder.
 
 ## Structure diagram
+```
 duke_2025/
 ├── duke_2025.Rproj
 ├── main.R
@@ -55,6 +56,7 @@ duke_2025/
 │ ├── Skeet_06042025_CTBVO.pdf
 │ ├── Skeet_06242025_MA.pdf
 │ └── Skeet_07072025_CTBVO.pdf
+```
 
 ## Package versions
 The analysis was run using R version 4.5.1 (2025-06-13), JAGS 4.3.1, and the following R package versions:
